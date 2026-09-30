@@ -1,32 +1,335 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 
-import {
-  Code,
-  Zap,
-  ArrowRight,
-  Cpu,
-  Layers,
-  Terminal,
-  Smartphone,
-  Lock,
-  Gamepad2,
-  Sparkles,
-  ExternalLink,
-} from "lucide-react";
-
 gsap.registerPlugin(ScrollTrigger);
 
-export default function CategoriesPage({ setCurrentPage }) {
+/* =========================================================
+   DEVNEX CATEGORY DATA
+========================================================= */
+
+const categories = [
+  {
+    number: "01",
+    slug: "web-full-stack",
+    icon: "code",
+    eyebrow: "WEB SYSTEMS",
+    title: "Web & Full-Stack Development",
+    stack:
+      "HTML · CSS · JavaScript · React · Next.js · Node.js · PHP · MongoDB · MySQL",
+    description:
+      "Build complete digital experiences for the web — from responsive interfaces and e-commerce platforms to APIs, dashboards, portals, and production-style full-stack products.",
+    examples: [
+      "Full-stack applications",
+      "E-commerce platforms",
+      "Dashboards & portals",
+      "REST / backend APIs",
+    ],
+    accent: "from-indigo-500/20 via-indigo-500/5 to-transparent",
+  },
+  {
+    number: "02",
+    slug: "ai-machine-learning",
+    icon: "brain",
+    eyebrow: "INTELLIGENT SYSTEMS",
+    title: "AI & Machine Learning",
+    stack:
+      "Python · TensorFlow · PyTorch · OpenAI · NLP · Computer Vision · Scikit-learn",
+    description:
+      "Create intelligent systems that predict, understand, generate, recommend, automate, or learn from data and real-world inputs.",
+    examples: [
+      "AI assistants",
+      "Computer vision",
+      "Recommendation systems",
+      "Prediction engines",
+    ],
+    accent: "from-violet-500/20 via-violet-500/5 to-transparent",
+  },
+  {
+    number: "03",
+    slug: "mobile-development",
+    icon: "phone",
+    eyebrow: "MOBILE PRODUCTS",
+    title: "Mobile Application Development",
+    stack: "Flutter · React Native · Kotlin · Swift · Firebase · Android",
+    description:
+      "Build Android, iOS, and cross-platform applications designed around real users, mobile workflows, and device-first experiences.",
+    examples: [
+      "Android applications",
+      "Cross-platform apps",
+      "Productivity tools",
+      "Community applications",
+    ],
+    accent: "from-cyan-500/20 via-cyan-500/5 to-transparent",
+  },
+  {
+    number: "04",
+    slug: "saas-automation",
+    icon: "workflow",
+    eyebrow: "UTILITY SYSTEMS",
+    title: "SaaS & Utility Automation",
+    stack:
+      "React · Node.js · Python · APIs · Extensions · Automation · Integrations",
+    description:
+      "Turn everyday problems into focused products, productivity tools, browser extensions, internal systems, and workflow automation.",
+    examples: [
+      "Micro-SaaS products",
+      "Workflow automation",
+      "Browser extensions",
+      "Developer utilities",
+    ],
+    accent: "from-amber-500/20 via-amber-500/5 to-transparent",
+  },
+  {
+    number: "05",
+    slug: "data-science",
+    icon: "chart",
+    eyebrow: "DATA & INSIGHTS",
+    title: "Data Science & Analytics",
+    stack: "Python · SQL · Pandas · Power BI · Tableau · Excel · Matplotlib",
+    description:
+      "Transform raw information into useful insights through analytics, dashboards, forecasting, visualisation, and business intelligence.",
+    examples: [
+      "Analytics dashboards",
+      "Forecasting systems",
+      "Data visualisation",
+      "Business intelligence",
+    ],
+    accent: "from-emerald-500/20 via-emerald-500/5 to-transparent",
+  },
+  {
+    number: "06",
+    slug: "cybersecurity",
+    icon: "shield",
+    eyebrow: "SECURITY SYSTEMS",
+    title: "Cybersecurity",
+    stack: "Python · Linux · Networking · OWASP · Cryptography · Security APIs",
+    description:
+      "Build, analyse, test, and understand secure digital systems through defensive tooling, authentication, monitoring, and security research.",
+    examples: [
+      "Security dashboards",
+      "Network monitoring",
+      "Auth systems",
+      "Educational security tools",
+    ],
+    accent: "from-rose-500/20 via-rose-500/5 to-transparent",
+  },
+  {
+    number: "07",
+    slug: "cloud-devops",
+    icon: "cloud",
+    eyebrow: "INFRASTRUCTURE",
+    title: "Cloud & DevOps",
+    stack: "AWS · Azure · Docker · Kubernetes · GitHub Actions · Linux · Nginx",
+    description:
+      "Build infrastructure that keeps applications deployable, scalable, observable, and reliable across development and production environments.",
+    examples: [
+      "Cloud deployments",
+      "CI/CD pipelines",
+      "Container systems",
+      "Monitoring setups",
+    ],
+    accent: "from-sky-500/20 via-sky-500/5 to-transparent",
+  },
+  {
+    number: "08",
+    slug: "ui-ux-product-design",
+    icon: "palette",
+    eyebrow: "DIGITAL EXPERIENCE",
+    title: "UI/UX & Product Design",
+    stack: "Figma · Framer · Adobe XD · Photoshop · Illustrator · Prototyping",
+    description:
+      "Design digital products that are useful, understandable, visually strong, and easy to navigate — from research to polished interface systems.",
+    examples: [
+      "Mobile UI/UX",
+      "SaaS interfaces",
+      "Design systems",
+      "Interactive prototypes",
+    ],
+    accent: "from-fuchsia-500/20 via-fuchsia-500/5 to-transparent",
+  },
+];
+
+const projectStrength = [
+  {
+    number: "01",
+    icon: "target",
+    title: "Problem & Purpose",
+    text: "A strong project clearly explains why it exists, who it helps, and what problem it is trying to solve.",
+  },
+  {
+    number: "02",
+    icon: "code",
+    title: "Technical Execution",
+    text: "The core functionality should work properly and demonstrate meaningful engineering or design effort.",
+  },
+  {
+    number: "03",
+    icon: "layers",
+    title: "Code & Architecture",
+    text: "Structure, maintainability, data flow, APIs, components, and implementation choices should make sense.",
+  },
+  {
+    number: "04",
+    icon: "sparkles",
+    title: "Original Contribution",
+    text: "Students should be able to explain what they personally created, changed, designed, or improved.",
+  },
+  {
+    number: "05",
+    icon: "eye",
+    title: "Product Experience",
+    text: "The project should be understandable, usable, responsive, and presented with attention to the experience.",
+  },
+  {
+    number: "06",
+    icon: "book",
+    title: "Documentation",
+    text: "A reviewer should be able to understand the project, technology stack, setup, and major decisions.",
+  },
+];
+
+/* =========================================================
+   INLINE ICONS
+   No lucide-react dependency
+========================================================= */
+
+function Icon({ name, className = "h-5 w-5" }) {
+  const common = {
+    className,
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: 2,
+    strokeLinecap: "round",
+    strokeLinejoin: "round",
+  };
+
+  const icons = {
+    code: (
+      <>
+        <path d="m8 9-4 3 4 3" />
+        <path d="m16 9 4 3-4 3" />
+        <path d="m14 5-4 14" />
+      </>
+    ),
+    brain: (
+      <>
+        <path d="M9.5 4A3.5 3.5 0 0 0 6 7.5c0 .5.1 1 .3 1.4A3.5 3.5 0 0 0 7.5 15H9" />
+        <path d="M14.5 4A3.5 3.5 0 0 1 18 7.5c0 .5-.1 1-.3 1.4A3.5 3.5 0 0 1 16.5 15H15" />
+        <path d="M12 4v16" />
+        <path d="M8 20a4 4 0 0 1-1-7.9" />
+        <path d="M16 20a4 4 0 0 0 1-7.9" />
+      </>
+    ),
+    phone: (
+      <>
+        <rect x="7" y="2" width="10" height="20" rx="2" />
+        <path d="M11 18h2" />
+      </>
+    ),
+    workflow: (
+      <>
+        <rect x="3" y="3" width="6" height="6" rx="1" />
+        <rect x="15" y="15" width="6" height="6" rx="1" />
+        <path d="M9 6h4a2 2 0 0 1 2 2v7" />
+        <path d="m12 12 3 3 3-3" />
+      </>
+    ),
+    chart: (
+      <>
+        <path d="M4 20V10" />
+        <path d="M9 20V4" />
+        <path d="M14 20v-7" />
+        <path d="M19 20V7" />
+      </>
+    ),
+    shield: (
+      <>
+        <path d="M12 3 20 6v5c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6l8-3Z" />
+        <path d="m9 12 2 2 4-4" />
+      </>
+    ),
+    cloud: (
+      <path d="M17.5 19H7a5 5 0 0 1-.8-9.9A7 7 0 0 1 19.6 11 4 4 0 0 1 17.5 19Z" />
+    ),
+    palette: (
+      <>
+        <path d="M12 3a9 9 0 0 0 0 18h1.4a2 2 0 0 0 1.5-3.3 2 2 0 0 1 1.5-3.3H18A3 3 0 0 0 21 11a9 9 0 0 0-9-8Z" />
+        <circle cx="7.5" cy="10" r=".8" fill="currentColor" stroke="none" />
+        <circle cx="10" cy="6.5" r=".8" fill="currentColor" stroke="none" />
+        <circle cx="14" cy="6.5" r=".8" fill="currentColor" stroke="none" />
+      </>
+    ),
+    target: (
+      <>
+        <circle cx="12" cy="12" r="9" />
+        <circle cx="12" cy="12" r="5" />
+        <circle cx="12" cy="12" r="1.5" />
+      </>
+    ),
+    layers: (
+      <>
+        <path d="m12 2 9 5-9 5-9-5 9-5Z" />
+        <path d="m3 12 9 5 9-5" />
+        <path d="m3 17 9 5 9-5" />
+      </>
+    ),
+    sparkles: (
+      <>
+        <path d="m12 3-1.2 3.8L7 8l3.8 1.2L12 13l1.2-3.8L17 8l-3.8-1.2L12 3Z" />
+        <path d="m19 13-.7 2.3L16 16l2.3.7L19 19l.7-2.3L22 16l-2.3-.7L19 13Z" />
+      </>
+    ),
+    eye: (
+      <>
+        <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z" />
+        <circle cx="12" cy="12" r="2.5" />
+      </>
+    ),
+    book: (
+      <>
+        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+        <path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15Z" />
+      </>
+    ),
+    arrow: (
+      <>
+        <path d="M5 12h14" />
+        <path d="m12 5 7 7-7 7" />
+      </>
+    ),
+    check: <path d="m5 12 4 4L19 6" />,
+    grid: (
+      <>
+        <rect x="3" y="3" width="7" height="7" rx="1" />
+        <rect x="14" y="3" width="7" height="7" rx="1" />
+        <rect x="3" y="14" width="7" height="7" rx="1" />
+        <rect x="14" y="14" width="7" height="7" rx="1" />
+      </>
+    ),
+  };
+
+  return <svg {...common}>{icons[name]}</svg>;
+}
+
+/* =========================================================
+   PAGE
+========================================================= */
+
+export default function CategoriesPage() {
+  const navigate = useNavigate();
+
   const pageRef = useRef(null);
-  const heroCardRef = useRef(null);
-  const gridRef = useRef(null);
-  const spotlightRef = useRef(null);
-  const ctaRef = useRef(null);
+  const heroVisualRef = useRef(null);
+  const heroGlowRef = useRef(null);
+  const bgGridRef = useRef(null);
+
+  const [activeCategory, setActiveCategory] = useState(0);
 
   /* =====================================================
-     GSAP + SCROLLTRIGGER
+     ANIMATIONS
   ===================================================== */
 
   useEffect(() => {
@@ -35,264 +338,306 @@ export default function CategoriesPage({ setCurrentPage }) {
     if (!page) return;
 
     const ctx = gsap.context(() => {
-      /* HERO */
-
-      const heroTimeline = gsap.timeline({
+      const hero = gsap.timeline({
         defaults: {
           ease: "power4.out",
         },
       });
 
-      heroTimeline
-        .from(".categories-badge", {
-          opacity: 0,
-          y: 25,
-          duration: 0.6,
-        })
-        .from(
-          ".categories-title-line",
+      hero
+        .fromTo(
+          ".cat-kicker",
           {
             opacity: 0,
-            y: 55,
-            rotateX: -12,
-            duration: 0.8,
+            y: 18,
+          },
+          {
+            opacity: 1,
+            y: 0,
+            duration: 0.55,
+          },
+        )
+        .fromTo(
+          ".cat-title-line",
+          {
+            opacity: 0,
+            y: 80,
+            rotateX: -16,
+          },
+          {
+            opacity: 1,
+            y: 0,
+            rotateX: 0,
+            duration: 0.85,
             stagger: 0.1,
           },
           "-=0.25",
         )
-        .from(
-          ".categories-description",
+        .fromTo(
+          ".cat-intro",
           {
             opacity: 0,
-            y: 20,
-            duration: 0.6,
+            y: 24,
           },
-          "-=0.4",
+          {
+            opacity: 1,
+            y: 0,
+            duration: 0.65,
+          },
+          "-=0.45",
         )
-        .from(
-          ".categories-stats",
+        .fromTo(
+          ".cat-hero-actions",
           {
             opacity: 0,
-            y: 20,
-            duration: 0.5,
+            y: 18,
+          },
+          {
+            opacity: 1,
+            y: 0,
+            duration: 0.55,
           },
           "-=0.35",
         )
-        .from(
-          ".categories-hero-card",
+        .fromTo(
+          heroVisualRef.current,
           {
             opacity: 0,
-            y: 45,
-            scale: 0.96,
+            y: 35,
+            scale: 0.95,
+            rotateY: -5,
+          },
+          {
+            opacity: 1,
+            y: 0,
+            scale: 1,
+            rotateY: 0,
             duration: 0.9,
           },
-          "-=0.55",
+          "-=0.6",
         );
 
-      /* HERO FLOAT */
-
-      if (heroCardRef.current) {
-        gsap.to(heroCardRef.current, {
-          y: -8,
-          duration: 3,
-          repeat: -1,
-          yoyo: true,
-          ease: "sine.inOut",
-        });
-      }
-
-      /* SECTION REVEALS */
-
-      gsap.utils.toArray(".category-section-reveal").forEach((section) => {
-        gsap.from(section, {
-          opacity: 0,
-          y: 60,
-          duration: 0.9,
-          ease: "power3.out",
-          scrollTrigger: {
-            trigger: section,
-            start: "top 82%",
-            once: true,
-          },
-        });
+      gsap.to(".hero-orbit-a", {
+        rotation: 360,
+        duration: 24,
+        repeat: -1,
+        ease: "none",
+        transformOrigin: "50% 50%",
       });
 
-      /* PRIMARY CARDS */
-
-      if (gridRef.current) {
-        gsap.from(gridRef.current.children, {
-          opacity: 0,
-          y: 65,
-          scale: 0.96,
-          duration: 0.8,
-          stagger: 0.1,
-          ease: "power3.out",
-          scrollTrigger: {
-            trigger: gridRef.current,
-            start: "top 80%",
-            once: true,
-          },
-        });
-      }
-
-      /* SPECIAL CARDS */
-
-      gsap.utils.toArray(".special-card").forEach((card, index) => {
-        gsap.from(card, {
-          opacity: 0,
-          y: 50,
-          scale: 0.97,
-          duration: 0.75,
-          delay: index * 0.04,
-          ease: "power3.out",
-          scrollTrigger: {
-            trigger: card,
-            start: "top 88%",
-            once: true,
-          },
-        });
+      gsap.to(".hero-orbit-b", {
+        rotation: -360,
+        duration: 34,
+        repeat: -1,
+        ease: "none",
+        transformOrigin: "50% 50%",
       });
 
-      /* SPOTLIGHT */
+      gsap.to(".hero-pulse", {
+        scale: 1.18,
+        opacity: 0.45,
+        duration: 2.2,
+        yoyo: true,
+        repeat: -1,
+        ease: "sine.inOut",
+      });
 
-      if (spotlightRef.current) {
-        gsap.from(spotlightRef.current, {
-          opacity: 0,
-          scale: 0.95,
-          y: 50,
-          duration: 0.9,
-          ease: "power3.out",
-          scrollTrigger: {
-            trigger: spotlightRef.current,
-            start: "top 82%",
-            once: true,
+      gsap.to(".marquee-track", {
+        xPercent: -50,
+        duration: 28,
+        repeat: -1,
+        ease: "none",
+      });
+
+      gsap.utils.toArray(".cat-reveal").forEach((element) => {
+        gsap.fromTo(
+          element,
+          {
+            opacity: 0,
+            y: 48,
           },
-        });
-      }
-
-      /* CTA */
-
-      if (ctaRef.current) {
-        gsap.from(ctaRef.current, {
-          opacity: 0,
-          y: 55,
-          scale: 0.98,
-          duration: 0.9,
-          ease: "power3.out",
-          scrollTrigger: {
-            trigger: ctaRef.current,
-            start: "top 84%",
-            once: true,
+          {
+            opacity: 1,
+            y: 0,
+            duration: 0.85,
+            ease: "power3.out",
+            scrollTrigger: {
+              trigger: element,
+              start: "top 86%",
+              once: true,
+            },
           },
-        });
-      }
+        );
+      });
 
-      /* CARD HOVER */
+      gsap.utils.toArray(".category-card").forEach((card, index) => {
+        gsap.fromTo(
+          card,
+          {
+            opacity: 0,
+            y: 60,
+            scale: 0.97,
+          },
+          {
+            opacity: 1,
+            y: 0,
+            scale: 1,
+            duration: 0.75,
+            delay: (index % 2) * 0.05,
+            ease: "power3.out",
+            scrollTrigger: {
+              trigger: card,
+              start: "top 88%",
+              once: true,
+            },
+          },
+        );
 
-      const cards = gsap.utils.toArray(".interactive-card");
+        const shine = card.querySelector(".card-shine");
 
-      cards.forEach((card) => {
-        const icon = card.querySelector(".card-icon");
-        const arrow = card.querySelector(".card-arrow");
+        const move = (event) => {
+          const rect = card.getBoundingClientRect();
 
-        const enter = () => {
+          const x = (event.clientX - rect.left) / rect.width - 0.5;
+
+          const y = (event.clientY - rect.top) / rect.height - 0.5;
+
           gsap.to(card, {
+            rotateY: x * 5,
+            rotateX: y * -5,
             y: -8,
             duration: 0.35,
-            ease: "power3.out",
+            ease: "power2.out",
+            transformPerspective: 1000,
+            transformOrigin: "center center",
+            overwrite: true,
           });
 
-          if (icon) {
-            gsap.to(icon, {
-              scale: 1.08,
-              rotate: 4,
-              duration: 0.35,
-              ease: "power3.out",
-            });
-          }
-
-          if (arrow) {
-            gsap.to(arrow, {
-              x: 5,
-              duration: 0.35,
-              ease: "power3.out",
+          if (shine) {
+            gsap.to(shine, {
+              x: event.clientX - rect.left,
+              y: event.clientY - rect.top,
+              opacity: 1,
+              duration: 0.25,
+              overwrite: true,
             });
           }
         };
 
         const leave = () => {
           gsap.to(card, {
+            rotateY: 0,
+            rotateX: 0,
             y: 0,
-            duration: 0.4,
+            duration: 0.5,
             ease: "power3.out",
           });
 
-          if (icon) {
-            gsap.to(icon, {
-              scale: 1,
-              rotate: 0,
-              duration: 0.4,
-              ease: "power3.out",
-            });
-          }
-
-          if (arrow) {
-            gsap.to(arrow, {
-              x: 0,
-              duration: 0.4,
-              ease: "power3.out",
+          if (shine) {
+            gsap.to(shine, {
+              opacity: 0,
+              duration: 0.25,
             });
           }
         };
 
-        card.addEventListener("mouseenter", enter);
+        card.addEventListener("mousemove", move);
         card.addEventListener("mouseleave", leave);
 
-        card._enter = enter;
-        card._leave = leave;
+        card._devnexMove = move;
+        card._devnexLeave = leave;
       });
-    }, page);
 
-    /* MOUSE PARALLAX */
+      gsap.utils.toArray(".strength-card").forEach((card, index) => {
+        gsap.fromTo(
+          card,
+          {
+            opacity: 0,
+            y: 30,
+          },
+          {
+            opacity: 1,
+            y: 0,
+            duration: 0.6,
+            delay: index * 0.04,
+            ease: "power3.out",
+            scrollTrigger: {
+              trigger: card,
+              start: "top 89%",
+              once: true,
+            },
+          },
+        );
+      });
+
+      gsap.fromTo(
+        ".cta-panel",
+        {
+          opacity: 0,
+          scale: 0.97,
+          y: 40,
+        },
+        {
+          opacity: 1,
+          scale: 1,
+          y: 0,
+          duration: 0.85,
+          ease: "power3.out",
+          scrollTrigger: {
+            trigger: ".cta-panel",
+            start: "top 86%",
+            once: true,
+          },
+        },
+      );
+    }, page);
 
     const handleMouseMove = (event) => {
       const rect = page.getBoundingClientRect();
 
       const x = event.clientX - rect.left;
+
       const y = event.clientY - rect.top;
 
-      const percentX = x / rect.width - 0.5;
-      const percentY = y / rect.height - 0.5;
+      if (bgGridRef.current) {
+        gsap.to(bgGridRef.current, {
+          x: (x / rect.width - 0.5) * 20,
+          y: (y / rect.height - 0.5) * 20,
+          duration: 1,
+          ease: "power3.out",
+          overwrite: true,
+        });
+      }
 
-      gsap.to(".background-grid", {
-        x: percentX * 18,
-        y: percentY * 18,
-        duration: 1.2,
-        ease: "power3.out",
-        overwrite: true,
-      });
-
-      gsap.to(".mouse-glow", {
-        x,
-        y,
-        duration: 0.6,
-        ease: "power2.out",
-        overwrite: true,
-      });
+      if (heroGlowRef.current) {
+        gsap.to(heroGlowRef.current, {
+          x,
+          y,
+          duration: 0.5,
+          ease: "power2.out",
+          overwrite: true,
+        });
+      }
     };
 
     page.addEventListener("mousemove", handleMouseMove);
 
+    const refreshTimer = window.setTimeout(() => {
+      ScrollTrigger.refresh();
+    }, 250);
+
     return () => {
+      window.clearTimeout(refreshTimer);
+
       page.removeEventListener("mousemove", handleMouseMove);
 
-      gsap.utils.toArray(".interactive-card").forEach((card) => {
-        if (card._enter) {
-          card.removeEventListener("mouseenter", card._enter);
+      page.querySelectorAll(".category-card").forEach((card) => {
+        if (card._devnexMove) {
+          card.removeEventListener("mousemove", card._devnexMove);
         }
 
-        if (card._leave) {
-          card.removeEventListener("mouseleave", card._leave);
+        if (card._devnexLeave) {
+          card.removeEventListener("mouseleave", card._devnexLeave);
         }
       });
 
@@ -301,27 +646,33 @@ export default function CategoriesPage({ setCurrentPage }) {
   }, []);
 
   /* =====================================================
-     SUBMIT NAVIGATION
-     
-     IMPORTANT:
-     App.jsx has /upload
-     App.jsx does NOT have /submit
+     AUTO CATEGORY ROTATION
   ===================================================== */
 
+  useEffect(() => {
+    const interval = window.setInterval(() => {
+      setActiveCategory((current) => (current + 1) % categories.length);
+    }, 2600);
+
+    return () => window.clearInterval(interval);
+  }, []);
+
   const goToSubmit = () => {
-    if (setCurrentPage) {
-      setCurrentPage("Upload");
+    navigate("/upload");
 
-      window.scrollTo({
-        top: 0,
-        behavior: "smooth",
-      });
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
+  };
 
-      return;
-    }
+  const goToGallery = () => {
+    navigate("/features");
 
-    // FIX: send user to Upload page
-    window.location.href = "/upload";
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
   };
 
   return (
@@ -330,54 +681,45 @@ export default function CategoriesPage({ setCurrentPage }) {
       className="
         relative
         min-h-screen
-        w-full
-        overflow-x-hidden
-        bg-[#f8f9fb]
-        pb-32
-        text-slate-900
+        overflow-hidden
+        bg-[#f8f9fc]
+        pb-28
+        text-slate-950
       "
     >
       {/* =====================================================
           BACKGROUND
       ===================================================== */}
 
-      <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
         <div
+          ref={bgGridRef}
           className="
-            background-grid
             absolute
-            -inset-32
-            opacity-[0.38]
-            bg-[radial-gradient(#6366f1_1px,transparent_1px)]
-            [background-size:42px_42px]
+            -inset-28
+            opacity-[0.55]
           "
+          style={{
+            backgroundImage:
+              "radial-gradient(rgba(79,70,229,0.16) 1px, transparent 1px)",
+
+            backgroundSize: "44px 44px",
+          }}
         />
 
         <div
+          ref={heroGlowRef}
           className="
-            mouse-glow
             absolute
-            left-0
-            top-0
             h-[520px]
             w-[520px]
             -translate-x-1/2
             -translate-y-1/2
             rounded-full
-            bg-indigo-500/10
-            blur-[110px]
-          "
-        />
-
-        <div
-          className="
-            absolute
-            -right-40
-            top-20
-            h-[500px]
-            w-[500px]
-            rounded-full
-            bg-purple-500/10
+            bg-gradient-to-r
+            from-indigo-500/15
+            via-violet-500/10
+            to-fuchsia-500/10
             blur-[120px]
           "
         />
@@ -385,20 +727,29 @@ export default function CategoriesPage({ setCurrentPage }) {
         <div
           className="
             absolute
-            bottom-0
-            -left-40
-            h-[450px]
-            w-[450px]
+            right-[-180px]
+            top-[900px]
+            h-[520px]
+            w-[520px]
             rounded-full
-            bg-blue-500/10
+            bg-indigo-500/[0.06]
+            blur-[120px]
+          "
+        />
+
+        <div
+          className="
+            absolute
+            left-[-200px]
+            top-[2600px]
+            h-[520px]
+            w-[520px]
+            rounded-full
+            bg-fuchsia-500/[0.05]
             blur-[120px]
           "
         />
       </div>
-
-      {/* =====================================================
-          CONTENT
-      ===================================================== */}
 
       <div
         className="
@@ -407,450 +758,641 @@ export default function CategoriesPage({ setCurrentPage }) {
           mx-auto
           max-w-7xl
           px-6
-          pt-4
-          sm:px-8
-          sm:pt-6
-          lg:px-12
         "
       >
-        {/* =====================================================
+        {/* =================================================
             HERO
-        ===================================================== */}
+        ================================================= */}
 
-        <section className="flex items-center py-6 sm:py-8 lg:py-10">
-          <div
-            className="
-              grid
-              w-full
-              grid-cols-1
-              items-center
-              gap-12
-              lg:grid-cols-12
-              lg:gap-8
-            "
-          >
-            {/* LEFT */}
+        <section
+          className="
+            grid
+            min-h-screen
+            items-center
+            gap-12
+            pt-20
+            lg:grid-cols-12
+          "
+        >
+          {/* LEFT */}
 
-            <div className="lg:col-span-7">
-              <div
+          <div className="lg:col-span-7">
+            <div
+              className="
+                cat-kicker
+                inline-flex
+                items-center
+                gap-2
+                rounded-full
+                border
+                border-indigo-100
+                bg-white/80
+                px-4
+                py-2
+                shadow-sm
+                backdrop-blur-xl
+              "
+            >
+              <Icon name="grid" className="h-4 w-4 text-indigo-600" />
+
+              <span
                 className="
-                  categories-badge
-                  mb-6
-                  inline-flex
-                  items-center
-                  gap-2
-                  rounded-full
-                  border
-                  border-indigo-200
-                  bg-white/90
-                  px-4
-                  py-2
                   text-[10px]
-                  font-bold
-                  uppercase
-                  tracking-[0.16em]
-                  text-indigo-700
-                  shadow-sm
-                  backdrop-blur-xl
-                  sm:text-xs
-                "
-              >
-                <Layers className="h-4 w-4" />
-
-                <span>Season 01 Competition Tracks</span>
-
-                <span className="h-1.5 w-1.5 rounded-full bg-indigo-500" />
-
-                <span className="text-slate-400">2026</span>
-              </div>
-
-              <h1
-                className="
-                  overflow-visible
-                  text-[clamp(2.5rem,5vw,5.2rem)]
                   font-black
-                  leading-[0.92]
-                  tracking-[-0.06em]
-                  text-slate-950
-                "
-              >
-                <span className="categories-title-line block">Choose Your</span>
-
-                <span className="categories-title-line block">Domain.</span>
-
-                <span className="categories-title-line block text-indigo-600">
-                  Build Your
-                </span>
-
-                <span className="categories-title-line block">Solution.</span>
-
-                <span className="categories-title-line block">
-                  Win Category Prizes.
-                </span>
-              </h1>
-
-              <p
-                className="
-                  categories-description
-                  mt-6
-                  max-w-2xl
-                  text-sm
-                  leading-6
-                  text-slate-500
-                  sm:text-base
-                  sm:leading-7
-                "
-              >
-                Projects are evaluated within specific categories to ensure fair
-                judging against technical peers. Submit existing projects or
-                build fresh for Season 01.
-              </p>
-
-              <div
-                className="
-                  categories-stats
-                  mt-6
-                  flex
-                  flex-wrap
-                  items-center
-                  gap-x-7
-                  gap-y-3
-                  text-[10px]
-                  font-bold
                   uppercase
-                  tracking-wider
-                  text-slate-400
-                  sm:text-xs
+                  tracking-[0.2em]
+                  text-indigo-600
                 "
               >
-                <div className="flex items-center gap-2">
-                  <span className="h-2 w-2 rounded-full bg-indigo-500" />
-                  04 Primary Tracks
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <span className="h-2 w-2 rounded-full bg-purple-500" />
-                  04 Special Tracks
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <span className="h-2 w-2 rounded-full bg-emerald-500" />
-                  Free Submission
-                </div>
-              </div>
+                DEVNEX Technical Categories
+              </span>
             </div>
 
-            {/* RIGHT */}
-
-            <div className="flex w-full justify-center lg:col-span-5 lg:justify-end">
-              <div
-                ref={heroCardRef}
+            <h1
+              className="
+                mt-7
+                text-[clamp(3.2rem,7vw,6.8rem)]
+                font-black
+                leading-[0.84]
+                tracking-[-0.065em]
+              "
+            >
+              <span
                 className="
-                  categories-hero-card
-                  relative
-                  w-full
-                  max-w-[440px]
-                  rounded-[2rem]
-                  border
-                  border-slate-800
-                  bg-[#10131a]
-                  p-6
+                  cat-title-line
+                  block
+                "
+              >
+                CHOOSE
+              </span>
+
+              <span
+                className="
+                  cat-title-line
+                  block
+                  text-indigo-600
+                "
+              >
+                WHAT
+              </span>
+
+              <span
+                className="
+                  cat-title-line
+                  block
+                "
+              >
+                YOU BUILD.
+              </span>
+            </h1>
+
+            <p
+              className="
+                cat-intro
+                mt-8
+                max-w-2xl
+                text-base
+                leading-8
+                text-slate-600
+                sm:text-lg
+              "
+            >
+              Different technical disciplines require different skills. Explore
+              student projects by the problems they solve and the technologies
+              used to build them.
+            </p>
+
+            <div
+              className="
+                cat-hero-actions
+                mt-8
+                flex
+                flex-col
+                gap-3
+                sm:flex-row
+              "
+            >
+              <button
+                type="button"
+                onClick={goToGallery}
+                className="
+                  inline-flex
+                  items-center
+                  justify-center
+                  gap-2
+                  rounded-2xl
+                  bg-indigo-600
+                  px-7
+                  py-4
+                  text-sm
+                  font-black
                   text-white
-                  shadow-[0_35px_90px_rgba(15,23,42,0.22)]
-                  sm:p-8
-                  lg:max-w-none
+                  shadow-xl
+                  shadow-indigo-600/20
+                  transition
+                  hover:-translate-y-1
+                  hover:bg-indigo-700
+                "
+              >
+                Explore Projects
+                <Icon name="arrow" className="h-4 w-4" />
+              </button>
+
+              <button
+                type="button"
+                onClick={goToSubmit}
+                className="
+                  inline-flex
+                  items-center
+                  justify-center
+                  rounded-2xl
+                  border
+                  border-slate-200
+                  bg-white/90
+                  px-7
+                  py-4
+                  text-sm
+                  font-black
+                  text-slate-950
+                  shadow-sm
+                  backdrop-blur
+                  transition
+                  hover:-translate-y-1
+                  hover:border-indigo-200
+                  hover:text-indigo-600
+                "
+              >
+                Submit Your Build
+              </button>
+            </div>
+
+            <div
+              className="
+                cat-hero-actions
+                mt-9
+                flex
+                flex-wrap
+                gap-x-8
+                gap-y-3
+                text-[10px]
+                font-black
+                uppercase
+                tracking-[0.14em]
+                text-slate-400
+              "
+            >
+              <span className="flex items-center gap-2">
+                <span className="h-2 w-2 rounded-full bg-indigo-600" />
+                08 Technical Categories
+              </span>
+
+              <span className="flex items-center gap-2">
+                <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                Student Project Discovery
+              </span>
+
+              <span className="flex items-center gap-2">
+                <span className="h-2 w-2 rounded-full bg-violet-500" />
+                GitHub + Live Demos
+              </span>
+            </div>
+          </div>
+
+          {/* RIGHT VISUAL */}
+
+          <div
+            className="
+              lg:col-span-5
+              lg:pl-4
+            "
+          >
+            <div
+              ref={heroVisualRef}
+              className="
+                relative
+                mx-auto
+                max-w-[520px]
+                [perspective:1200px]
+              "
+            >
+              <div
+                className="
+                  relative
+                  aspect-square
+                  overflow-hidden
+                  rounded-[42px]
+                  border
+                  border-slate-200
+                  bg-slate-950
+                  shadow-[0_40px_100px_rgba(15,23,42,0.22)]
                 "
               >
                 <div
                   className="
-                    pointer-events-none
-                    absolute
-                    -right-24
-                    -top-24
-                    h-72
-                    w-72
-                    rounded-full
-                    bg-indigo-500/30
-                    blur-[80px]
-                  "
-                />
-
-                <div
-                  className="
-                    pointer-events-none
-                    absolute
-                    -bottom-32
-                    -left-20
-                    h-72
-                    w-72
-                    rounded-full
-                    bg-purple-500/20
-                    blur-[90px]
-                  "
-                />
-
-                <div
-                  className="
-                    pointer-events-none
                     absolute
                     inset-0
                     opacity-[0.08]
-                    bg-[linear-gradient(#fff_1px,transparent_1px),linear-gradient(90deg,#fff_1px,transparent_1px)]
-                    [background-size:34px_34px]
+                  "
+                  style={{
+                    backgroundImage: `
+                      linear-gradient(rgba(255,255,255,.5) 1px, transparent 1px),
+                      linear-gradient(90deg, rgba(255,255,255,.5) 1px, transparent 1px)
+                    `,
+
+                    backgroundSize: "34px 34px",
+                  }}
+                />
+
+                <div
+                  className="
+                    hero-pulse
+                    absolute
+                    left-1/2
+                    top-1/2
+                    h-48
+                    w-48
+                    -translate-x-1/2
+                    -translate-y-1/2
+                    rounded-full
+                    bg-indigo-600/30
+                    blur-[75px]
                   "
                 />
 
-                <div className="relative z-10">
-                  <div className="mb-6 flex items-center justify-between">
-                    <div
-                      className="
-                        flex
-                        h-11
-                        w-11
-                        items-center
-                        justify-center
-                        rounded-2xl
-                        border
-                        border-white/10
-                        bg-white/10
-                        backdrop-blur-md
-                      "
-                    >
-                      <Sparkles className="h-5 w-5 text-indigo-300" />
-                    </div>
+                <div
+                  className="
+                    hero-orbit-a
+                    absolute
+                    left-1/2
+                    top-1/2
+                    h-[72%]
+                    w-[72%]
+                    -translate-x-1/2
+                    -translate-y-1/2
+                    rounded-full
+                    border
+                    border-white/10
+                  "
+                >
+                  <span
+                    className="
+                      absolute
+                      left-1/2
+                      top-[-5px]
+                      h-2.5
+                      w-2.5
+                      rounded-full
+                      bg-indigo-400
+                      shadow-[0_0_20px_rgba(129,140,248,.9)]
+                    "
+                  />
+                </div>
 
-                    <span
-                      className="
-                        rounded-full
-                        border
-                        border-indigo-400/20
-                        bg-indigo-500/10
-                        px-3
-                        py-1.5
-                        text-[9px]
-                        font-bold
-                        uppercase
-                        tracking-widest
-                        text-indigo-300
-                      "
-                    >
-                      Sponsor Feature
-                    </span>
+                <div
+                  className="
+                    hero-orbit-b
+                    absolute
+                    left-1/2
+                    top-1/2
+                    h-[52%]
+                    w-[52%]
+                    -translate-x-1/2
+                    -translate-y-1/2
+                    rounded-full
+                    border
+                    border-dashed
+                    border-white/15
+                  "
+                >
+                  <span
+                    className="
+                      absolute
+                      bottom-[15%]
+                      right-[-4px]
+                      h-2
+                      w-2
+                      rounded-full
+                      bg-fuchsia-400
+                    "
+                  />
+                </div>
+
+                {/* ACTIVE CATEGORY */}
+
+                <div
+                  className="
+                    absolute
+                    left-1/2
+                    top-1/2
+                    w-[78%]
+                    -translate-x-1/2
+                    -translate-y-1/2
+                  "
+                >
+                  <p
+                    className="
+                      text-center
+                      text-[9px]
+                      font-black
+                      uppercase
+                      tracking-[0.24em]
+                      text-indigo-300
+                    "
+                  >
+                    Currently Exploring
+                  </p>
+
+                  <div
+                    className="
+                      mx-auto
+                      mt-5
+                      flex
+                      h-16
+                      w-16
+                      items-center
+                      justify-center
+                      rounded-[20px]
+                      border
+                      border-white/10
+                      bg-white/10
+                      text-white
+                      shadow-2xl
+                      backdrop-blur
+                    "
+                  >
+                    <Icon
+                      name={categories[activeCategory].icon}
+                      className="h-7 w-7"
+                    />
                   </div>
 
-                  <div className="mb-3">
-                    <p
-                      className="
-                        mb-1.5
-                        text-[9px]
-                        font-bold
-                        uppercase
-                        tracking-[0.25em]
-                        text-slate-500
-                      "
-                    >
-                      Track Highlight
-                    </p>
-
-                    <h2
-                      className="
-                        max-w-md
-                        text-2xl
-                        font-black
-                        leading-[1.05]
-                        tracking-tight
-                        sm:text-3xl
-                      "
-                    >
-                      Official Domain Tracks
-                    </h2>
-                  </div>
+                  <h2
+                    className="
+                      mt-5
+                      text-center
+                      text-3xl
+                      font-black
+                      leading-[0.98]
+                      tracking-tight
+                      text-white
+                    "
+                  >
+                    {categories[activeCategory].title}
+                  </h2>
 
                   <p
                     className="
-                      max-w-md
+                      mx-auto
+                      mt-4
+                      max-w-xs
+                      text-center
                       text-xs
                       leading-5
                       text-slate-400
-                      sm:text-sm
-                      sm:leading-6
                     "
                   >
-                    Every submission enters a category-specific evaluation
-                    pipeline designed to compare technical peers fairly.
+                    {categories[activeCategory].stack}
                   </p>
+                </div>
 
-                  <div className="mt-5 space-y-2">
-                    <MiniFeature
-                      number="01"
-                      title="Technical Evaluation"
-                      text="Judged against relevant technical peers."
-                    />
+                <div
+                  className="
+                    absolute
+                    left-5
+                    top-5
+                    rounded-full
+                    border
+                    border-white/10
+                    bg-white/[0.05]
+                    px-3
+                    py-1.5
+                    text-[9px]
+                    font-black
+                    uppercase
+                    tracking-[0.16em]
+                    text-slate-400
+                    backdrop-blur
+                  "
+                >
+                  01 — 08
+                </div>
 
-                    <MiniFeature
-                      number="02"
-                      title="Category Recognition"
-                      text="Stand out inside your strongest domain."
-                    />
-
-                    <MiniFeature
-                      number="03"
-                      title="Sponsor Visibility"
-                      text="Get discovered by hiring partners."
-                    />
-                  </div>
-
-                  <div className="mt-5 border-t border-white/10 pt-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-medium text-slate-500">
-                        SEASON 01
-                      </span>
-
-                      <span className="flex items-center gap-2 text-[10px] font-bold text-emerald-400">
-                        <span className="relative flex h-2 w-2">
-                          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-
-                          <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
-                        </span>
-                        Submission Open
-                      </span>
-                    </div>
-                  </div>
+                <div
+                  className="
+                    absolute
+                    bottom-5
+                    right-5
+                    flex
+                    items-center
+                    gap-2
+                    rounded-full
+                    border
+                    border-emerald-400/20
+                    bg-emerald-400/10
+                    px-3
+                    py-1.5
+                    text-[9px]
+                    font-black
+                    uppercase
+                    tracking-[0.14em]
+                    text-emerald-300
+                  "
+                >
+                  <span className="relative flex h-2 w-2">
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />
+                    <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
+                  </span>
+                  Explore Freely
                 </div>
               </div>
             </div>
           </div>
         </section>
 
-        {/* =====================================================
-            PRIMARY TRACKS
-        ===================================================== */}
+        {/* =================================================
+            MARQUEE
+        ================================================= */}
 
-        <section className="category-section-reveal space-y-8 py-16">
-          <div
+        <section
+          className="
+            cat-reveal
+            overflow-hidden
+            border-y
+            border-slate-200
+            py-5
+          "
+        >
+          <div className="marquee-track flex w-max">
+            {[...categories, ...categories].map((item, index) => (
+              <div
+                key={`${item.slug}-${index}`}
+                className="
+                    flex
+                    items-center
+                    gap-5
+                    pr-10
+                    text-sm
+                    font-black
+                    uppercase
+                    tracking-[0.12em]
+                    text-slate-400
+                  "
+              >
+                <span className="h-2 w-2 rounded-full bg-indigo-600" />
+
+                {item.title}
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* =================================================
+            INTRO
+        ================================================= */}
+
+        <section
+          className="
+            cat-reveal
+            grid
+            gap-8
+            py-28
+            lg:grid-cols-12
+            lg:items-end
+          "
+        >
+          <div className="lg:col-span-7">
+            <SectionLabel>TECHNICAL CATEGORIES</SectionLabel>
+
+            <h2
+              className="
+                mt-5
+                max-w-4xl
+                text-4xl
+                font-black
+                leading-[0.98]
+                tracking-tight
+                sm:text-5xl
+                lg:text-6xl
+              "
+            >
+              Different fields.
+              <span className="block text-indigo-600">
+                Different kinds of proof.
+              </span>
+            </h2>
+          </div>
+
+          <p
             className="
-              flex
-              flex-col
-              justify-between
-              gap-6
-              border-b
-              border-slate-200
-              pb-6
-              md:flex-row
-              md:items-end
+              text-base
+              leading-7
+              text-slate-600
+              lg:col-span-5
             "
           >
-            <div>
-              <p
-                className="
-                  mb-2
-                  text-xs
-                  font-black
-                  uppercase
-                  tracking-[0.25em]
-                  text-indigo-600
-                "
-              >
-                Core Divisions
-              </p>
+            DEVNEX organises projects by technical discipline so students can
+            present their strongest work clearly and visitors can discover
+            relevant talent faster.
+          </p>
+        </section>
+
+        {/* =================================================
+            8 CATEGORIES
+        ================================================= */}
+
+        <section
+          className="
+            grid
+            gap-6
+            lg:grid-cols-2
+          "
+        >
+          {categories.map((item) => (
+            <CategoryCard key={item.number} {...item} onSubmit={goToSubmit} />
+          ))}
+        </section>
+
+        {/* =================================================
+            WHAT MAKES STRONG PROJECT
+        ================================================= */}
+
+        <section className="cat-reveal py-32">
+          <div
+            className="
+              grid
+              gap-8
+              lg:grid-cols-12
+              lg:items-end
+            "
+          >
+            <div className="lg:col-span-7">
+              <SectionLabel>WHAT MAKES A STRONG PROJECT?</SectionLabel>
 
               <h2
                 className="
-                  text-3xl
+                  mt-5
+                  max-w-4xl
+                  text-4xl
                   font-black
-                  tracking-[-0.04em]
-                  text-slate-950
-                  sm:text-4xl
+                  leading-[0.98]
+                  tracking-tight
+                  sm:text-5xl
                 "
               >
-                Explore what students build.
+                Technology matters.
+                <span className="block text-indigo-600">
+                  Understanding matters more.
+                </span>
               </h2>
             </div>
 
             <p
               className="
-                max-w-md
-                text-sm
-                leading-6
-                text-slate-500
-                md:text-right
+                text-base
+                leading-7
+                text-slate-600
+                lg:col-span-5
               "
             >
-              Discover primary competition tracks open for all verified student
-              developers across Mumbai & MMR.
+              Strong work is more than a polished screenshot. DEVNEX looks at
+              the problem, execution, architecture, contribution, experience,
+              and clarity behind the project.
             </p>
           </div>
 
-          <div ref={gridRef} className="grid grid-cols-1 gap-6 md:grid-cols-2">
-            <TrackCard
-              number="01"
-              badge="High Volume"
-              title="Web & Full-Stack Development"
-              icon={<Code className="h-6 w-6" />}
-              iconStyle="bg-indigo-50 text-indigo-600"
-              accent="text-indigo-600"
-              tags="React.js • Next.js • Node.js • Python/Django"
-              description="E-commerce engines, web portals, social platforms, and full-stack web applications."
-              evaluation="Architecture & UI"
-            />
-
-            <TrackCard
-              number="02"
-              badge="Sponsored"
-              title="AI & Machine Learning"
-              icon={<Cpu className="h-6 w-6" />}
-              iconStyle="bg-purple-50 text-purple-600"
-              accent="text-purple-600"
-              tags="OpenAI API • PyTorch • Computer Vision • LLMs"
-              description="Smart bots, automated workflow tools, predictive models, and generative AI integrations."
-              evaluation="Model Utility"
-            />
-
-            <TrackCard
-              number="03"
-              badge="High Growth"
-              title="Mobile Application Development"
-              icon={<Smartphone className="h-6 w-6" />}
-              iconStyle="bg-emerald-50 text-emerald-600"
-              accent="text-emerald-600"
-              tags="Flutter • React Native • Android • iOS"
-              description="Native or cross-platform mobile apps solving consumer or local community problems."
-              evaluation="Responsiveness & UX"
-            />
-
-            <TrackCard
-              number="04"
-              badge="Corporate Favorite"
-              title="SaaS & Utility Automation"
-              icon={<Zap className="h-6 w-6" />}
-              iconStyle="bg-amber-50 text-amber-600"
-              accent="text-amber-600"
-              tags="APIs • Browser Extensions • DevTools • Automation"
-              description="Productivity tools, developer extensions, scraping systems, and business process automations."
-              evaluation="Problem Solving"
-            />
+          <div
+            className="
+              mt-12
+              grid
+              gap-5
+              sm:grid-cols-2
+              lg:grid-cols-3
+            "
+          >
+            {projectStrength.map((item) => (
+              <StrengthCard key={item.number} {...item} />
+            ))}
           </div>
         </section>
 
-        {/* =====================================================
-            SPOTLIGHT
-        ===================================================== */}
+        {/* =================================================
+            DARK FEATURE
+        ================================================= */}
 
         <section
-          ref={spotlightRef}
           className="
+            cat-reveal
             relative
-            my-16
             overflow-hidden
-            rounded-[2rem]
-            bg-[#0c0f15]
-            px-6
+            rounded-[40px]
+            bg-slate-950
+            px-7
             py-16
-            text-center
             text-white
-            shadow-[0_35px_90px_rgba(15,23,42,0.18)]
+            shadow-2xl
+            shadow-slate-900/10
             sm:px-10
-            sm:py-20
+            lg:px-14
           "
         >
           <div
@@ -858,185 +1400,132 @@ export default function CategoriesPage({ setCurrentPage }) {
               absolute
               inset-0
               opacity-[0.08]
-              bg-[radial-gradient(#fff_1px,transparent_1px)]
-              [background-size:28px_28px]
             "
+            style={{
+              backgroundImage:
+                "radial-gradient(rgba(255,255,255,.8) 1px, transparent 1px)",
+
+              backgroundSize: "30px 30px",
+            }}
           />
 
           <div
             className="
               absolute
-              left-1/2
-              top-1/2
-              h-80
-              w-80
-              -translate-x-1/2
-              -translate-y-1/2
+              right-[-100px]
+              top-[-120px]
+              h-[420px]
+              w-[420px]
               rounded-full
-              bg-indigo-600/20
+              bg-indigo-500/20
               blur-[100px]
             "
           />
 
-          <div className="relative z-10">
-            <p
-              className="
-                mb-4
-                text-xs
-                font-bold
-                uppercase
-                tracking-[0.3em]
-                text-indigo-400
-              "
-            >
-              Visibility matters
-            </p>
-
-            <h2
-              className="
-                text-3xl
-                font-black
-                uppercase
-                tracking-[-0.04em]
-                sm:text-5xl
-                lg:text-6xl
-              "
-            >
-              Great code
-              <br />
-              deserves to be seen.
-            </h2>
-
-            <p
-              className="
-                mx-auto
-                mt-5
-                max-w-xl
-                text-sm
-                leading-6
-                text-slate-400
-                sm:text-base
-              "
-            >
-              Over 50+ sponsors and hiring partners review our Category
-              Finalists.
-            </p>
-          </div>
-        </section>
-
-        {/* =====================================================
-            SPECIAL TRACKS
-        ===================================================== */}
-
-        <section className="category-section-reveal space-y-8 py-16">
-          <div className="border-b border-slate-200 pb-6">
-            <p
-              className="
-                mb-2
-                text-xs
-                font-black
-                uppercase
-                tracking-[0.25em]
-                text-indigo-600
-              "
-            >
-              Niche Divisions
-            </p>
-
-            <div
-              className="
-                flex
-                flex-col
-                justify-between
-                gap-4
-                lg:flex-row
-                lg:items-end
-              "
-            >
-              <h2
+          <div
+            className="
+              relative
+              grid
+              gap-12
+              lg:grid-cols-12
+              lg:items-center
+            "
+          >
+            <div className="lg:col-span-7">
+              <p
                 className="
-                  text-3xl
+                  text-[10px]
                   font-black
-                  tracking-[-0.04em]
-                  text-slate-950
-                  sm:text-4xl
+                  uppercase
+                  tracking-[0.24em]
+                  text-indigo-300
                 "
               >
-                Specialized Awards & Niche Tracks.
+                ONE PROJECT CAN CROSS MANY TECHNOLOGIES
+              </p>
+
+              <h2
+                className="
+                  mt-5
+                  text-4xl
+                  font-black
+                  leading-[0.98]
+                  tracking-tight
+                  sm:text-5xl
+                  lg:text-6xl
+                "
+              >
+                Choose the category that best describes{" "}
+                <span className="text-indigo-400">
+                  the project&apos;s core purpose.
+                </span>
               </h2>
 
               <p
                 className="
-                  max-w-md
-                  text-sm
-                  leading-6
-                  text-slate-500
-                  lg:text-right
+                  mt-6
+                  max-w-2xl
+                  text-base
+                  leading-7
+                  text-slate-400
                 "
               >
-                Smaller categories built for projects that push beyond
-                conventional application development.
+                A project may use React, Python, APIs, AI, databases, cloud
+                tools, and design systems together. That is normal. The category
+                should describe where the main technical value lives.
               </p>
             </div>
-          </div>
 
-          <div
-            className="
-              grid
-              grid-cols-1
-              gap-6
-              sm:grid-cols-2
-              lg:grid-cols-4
-            "
-          >
-            <SpecialCard
-              icon={<Lock className="h-5 w-5" />}
-              title="Cybersecurity & Ethical Hacking"
-              description="Network tools, vulnerability scanners, security scripts."
-            />
+            <div
+              className="
+                grid
+                gap-3
+                lg:col-span-5
+              "
+            >
+              <DarkRule
+                question="Mostly a complete web product?"
+                answer="Web & Full-Stack"
+              />
 
-            <SpecialCard
-              icon={<Gamepad2 className="h-5 w-5" />}
-              title="Game Development & Graphics"
-              description="Web games, Unity/Unreal prototypes, interactive experiences."
-            />
+              <DarkRule
+                question="AI drives the main value?"
+                answer="AI & Machine Learning"
+              />
 
-            <SpecialCard
-              icon={<Terminal className="h-5 w-5" />}
-              title="Open Source & Developer Tools"
-              description="Libraries, frameworks, public GitHub utilities."
-            />
+              <DarkRule
+                question="Designed around phones?"
+                answer="Mobile Development"
+              />
 
-            <SpecialCard
-              icon={<Cpu className="h-5 w-5" />}
-              title="IoT & Hardware Hacks"
-              description="Arduino/Raspberry Pi projects with software interfaces."
-            />
+              <DarkRule
+                question="Automates repetitive work?"
+                answer="SaaS & Automation"
+              />
+            </div>
           </div>
         </section>
 
-        {/* =====================================================
+        {/* =================================================
             CTA
-        ===================================================== */}
+        ================================================= */}
 
         <section
-          ref={ctaRef}
           className="
+            cta-panel
             relative
-            my-16
+            mt-32
             overflow-hidden
-            rounded-[2rem]
-            border
-            border-indigo-100
-            bg-gradient-to-br
-            from-indigo-50
-            via-white
-            to-purple-50
-            px-6
-            py-10
-            shadow-sm
-            sm:px-10
-            sm:py-12
+            rounded-[40px]
+            bg-indigo-600
+            px-8
+            py-14
+            text-white
+            shadow-2xl
+            shadow-indigo-600/20
+            sm:px-12
+            sm:py-16
+            lg:px-16
           "
         >
           <div
@@ -1044,126 +1533,120 @@ export default function CategoriesPage({ setCurrentPage }) {
               absolute
               -right-24
               -top-24
-              h-64
-              w-64
+              h-72
+              w-72
               rounded-full
-              bg-indigo-500/10
-              blur-[70px]
-            "
-          />
-
-          <div
-            className="
-              absolute
-              -bottom-32
-              -left-20
-              h-64
-              w-64
-              rounded-full
-              bg-purple-500/10
-              blur-[70px]
+              bg-white/10
+              blur-[80px]
             "
           />
 
           <div
             className="
               relative
-              z-10
-              flex
-              flex-col
-              items-center
-              justify-between
-              gap-8
-              md:flex-row
+              grid
+              gap-10
+              lg:grid-cols-12
+              lg:items-center
             "
           >
-            <div>
-              <p
+            <div className="lg:col-span-8">
+              <span
                 className="
-                  mb-2
-                  text-xs
-                  font-bold
+                  text-[10px]
+                  font-black
                   uppercase
-                  tracking-[0.25em]
-                  text-indigo-600
+                  tracking-[0.22em]
+                  text-indigo-100
                 "
               >
-                Your project belongs here
-              </p>
+                YOUR PROJECT BELONGS HERE
+              </span>
 
               <h2
                 className="
-                  text-3xl
+                  mt-4
+                  max-w-4xl
+                  text-4xl
                   font-black
-                  tracking-[-0.04em]
-                  text-slate-950
-                  sm:text-4xl
+                  leading-[0.95]
+                  tracking-tight
+                  sm:text-5xl
+                  lg:text-6xl
                 "
               >
-                BUILD IT.
-                <br />
-                SHOW US.
+                CHOOSE YOUR TRACK.
+                <span className="block">SUBMIT YOUR BUILD.</span>
               </h2>
 
-              <p className="mt-3 max-w-lg text-sm leading-6 text-slate-500">
-                Select your category and submit your repository for free
-                evaluation today.
+              <p
+                className="
+                  mt-5
+                  max-w-2xl
+                  text-base
+                  leading-7
+                  text-indigo-100
+                "
+              >
+                Turn your project into visible proof of what you can build.
               </p>
             </div>
 
-            {/* =================================================
-                SUBMIT BUTTON
-            ================================================= */}
-
-          
-          </div>
-        </section>
-
-        {/* =====================================================
-            BOTTOM
-        ===================================================== */}
-
-        <section className="border-t border-slate-200 py-8">
-          <div
-            className="
-              flex
-              flex-col
-              justify-between
-              gap-4
-              text-xs
-              font-bold
-              uppercase
-              tracking-wider
-              text-slate-400
-              sm:flex-row
-              sm:items-center
-            "
-          >
-            <span>Season 01 • Mumbai & MMR</span>
-
-            <button
-              type="button"
-              onClick={goToSubmit}
+            <div
               className="
-                group
                 flex
-                items-center
-                gap-2
-                text-indigo-600
-                transition-colors
-                hover:text-indigo-700
+                flex-col
+                gap-3
+                lg:col-span-4
               "
             >
-              Start Your Submission
-              <ExternalLink
+              <button
+                type="button"
+                onClick={goToSubmit}
                 className="
-                  h-3.5
-                  w-3.5
-                  transition-transform
-                  group-hover:translate-x-0.5
+                  inline-flex
+                  items-center
+                  justify-center
+                  gap-2
+                  rounded-2xl
+                  bg-white
+                  px-6
+                  py-4
+                  text-sm
+                  font-black
+                  text-indigo-700
+                  shadow-xl
+                  transition
+                  hover:-translate-y-1
                 "
-              />
-            </button>
+              >
+                Start Your Submission
+                <Icon name="arrow" className="h-4 w-4" />
+              </button>
+
+              <button
+                type="button"
+                onClick={goToGallery}
+                className="
+                  inline-flex
+                  items-center
+                  justify-center
+                  rounded-2xl
+                  border
+                  border-white/20
+                  bg-white/10
+                  px-6
+                  py-4
+                  text-sm
+                  font-black
+                  text-white
+                  transition
+                  hover:bg-white/20
+                "
+              >
+                Explore Student Projects
+              </button>
+            </div>
           </div>
         </section>
       </div>
@@ -1172,99 +1655,115 @@ export default function CategoriesPage({ setCurrentPage }) {
 }
 
 /* =========================================================
-   MINI FEATURE
+   COMPONENTS
 ========================================================= */
 
-function MiniFeature({ number, title, text }) {
+function SectionLabel({ children }) {
   return (
     <div
       className="
-        flex
+        inline-flex
         items-center
-        gap-3
-        rounded-xl
-        border
-        border-white/10
-        bg-white/[0.03]
-        px-3
-        py-2
+        gap-2
       "
     >
       <span
         className="
-          flex
-          h-6
-          w-6
-          shrink-0
-          items-center
-          justify-center
-          rounded-lg
-          bg-indigo-500/10
-          text-[9px]
+          h-2
+          w-2
+          rounded-full
+          bg-indigo-600
+        "
+      />
+
+      <span
+        className="
+          text-[10px]
           font-black
-          text-indigo-300
+          uppercase
+          tracking-[0.24em]
+          text-indigo-600
         "
       >
-        {number}
+        {children}
       </span>
-
-      <div className="min-w-0">
-        <p className="text-[11px] font-bold text-white">{title}</p>
-
-        <p className="mt-0.5 truncate text-[9px] text-slate-500">{text}</p>
-      </div>
     </div>
   );
 }
 
-/* =========================================================
-   PRIMARY TRACK CARD
-========================================================= */
-
-function TrackCard({
+function CategoryCard({
   number,
-  badge,
-  title,
   icon,
-  iconStyle,
-  accent,
-  tags,
+  eyebrow,
+  title,
+  stack,
   description,
-  evaluation,
+  examples,
+  accent,
+  onSubmit,
 }) {
   return (
     <article
       className="
-        interactive-card
+        category-card
         group
         relative
-        min-h-[350px]
         overflow-hidden
-        rounded-[1.75rem]
+        rounded-[34px]
         border
         border-slate-200
-        bg-white/80
-        p-6
+        bg-white/85
+        p-7
         shadow-sm
         backdrop-blur-xl
         transition-shadow
         duration-500
         hover:border-indigo-200
-        hover:shadow-[0_30px_70px_rgba(15,23,42,0.1)]
+        hover:shadow-[0_30px_80px_rgba(15,23,42,0.11)]
         sm:p-8
+        [transform-style:preserve-3d]
       "
     >
+      <div
+        className={`
+          pointer-events-none
+          absolute
+          inset-0
+          bg-gradient-to-br
+          ${accent}
+          opacity-80
+        `}
+      />
+
+      <div
+        className="
+          card-shine
+          pointer-events-none
+          absolute
+          left-0
+          top-0
+          h-56
+          w-56
+          -translate-x-1/2
+          -translate-y-1/2
+          rounded-full
+          bg-white/60
+          opacity-0
+          blur-[60px]
+        "
+      />
+
       <span
         className="
           pointer-events-none
           absolute
           -right-2
-          -top-8
-          text-[130px]
+          -top-10
+          text-[150px]
           font-black
           leading-none
-          tracking-[-0.1em]
-          text-slate-100
+          tracking-[-0.08em]
+          text-slate-950/[0.035]
           transition-transform
           duration-700
           group-hover:translate-x-2
@@ -1274,57 +1773,156 @@ function TrackCard({
         {number}
       </span>
 
-      <div className="relative z-10 flex h-full flex-col justify-between">
-        <div>
-          <div className="flex items-start justify-between gap-4">
-            <div
-              className={`card-icon flex h-12 w-12 items-center justify-center rounded-2xl ${iconStyle}`}
-            >
-              {icon}
-            </div>
-
-            <span
-              className="
-                rounded-full
-                border
-                border-slate-200
-                bg-white
-                px-3
-                py-1.5
-                text-[9px]
-                font-black
-                uppercase
-                tracking-wider
-                text-slate-500
-              "
-            >
-              Track {number} • {badge}
-            </span>
-          </div>
-
-          <h3
+      <div
+        className="
+          relative
+          z-10
+        "
+        style={{
+          transform: "translateZ(20px)",
+        }}
+      >
+        <div
+          className="
+            flex
+            items-start
+            justify-between
+            gap-4
+          "
+        >
+          <div
             className="
-              mt-6
-              max-w-lg
-              text-2xl
-              font-black
-              tracking-[-0.03em]
-              text-slate-950
-              sm:text-3xl
+              flex
+              h-14
+              w-14
+              items-center
+              justify-center
+              rounded-2xl
+              bg-slate-950
+              p-3.5
+              text-white
+              shadow-lg
+              transition
+              duration-500
+              group-hover:rotate-3
+              group-hover:scale-105
+              group-hover:bg-indigo-600
             "
           >
-            {title}
-          </h3>
+            <Icon name={icon} className="h-6 w-6" />
+          </div>
 
-          <p
-            className={`mt-3 text-[10px] font-black uppercase leading-5 tracking-[0.12em] ${accent}`}
+          <span
+            className="
+              rounded-full
+              border
+              border-slate-200
+              bg-white/80
+              px-3
+              py-1.5
+              text-[9px]
+              font-black
+              uppercase
+              tracking-[0.16em]
+              text-slate-500
+              backdrop-blur
+            "
           >
-            {tags}
-          </p>
+            {eyebrow}
+          </span>
+        </div>
 
-          <p className="mt-3 max-w-xl text-sm leading-6 text-slate-500">
-            {description}
-          </p>
+        <h3
+          className="
+            mt-8
+            max-w-xl
+            text-3xl
+            font-black
+            leading-[0.98]
+            tracking-tight
+            text-slate-950
+          "
+        >
+          {title}
+        </h3>
+
+        <p
+          className="
+            mt-4
+            text-[10px]
+            font-black
+            uppercase
+            leading-5
+            tracking-[0.12em]
+            text-indigo-600
+          "
+        >
+          {stack}
+        </p>
+
+        <p
+          className="
+            mt-5
+            max-w-xl
+            text-sm
+            leading-7
+            text-slate-600
+          "
+        >
+          {description}
+        </p>
+
+        <div
+          className="
+            mt-7
+            grid
+            gap-2
+            sm:grid-cols-2
+          "
+        >
+          {examples.map((item) => (
+            <div
+              key={item}
+              className="
+                flex
+                items-center
+                gap-2
+                rounded-xl
+                border
+                border-slate-100
+                bg-white/65
+                px-3
+                py-2.5
+                backdrop-blur
+              "
+            >
+              <span
+                className="
+                  flex
+                  h-5
+                  w-5
+                  shrink-0
+                  items-center
+                  justify-center
+                  rounded-full
+                  bg-indigo-50
+                  text-indigo-600
+                "
+              >
+                <Icon name="check" className="h-3 w-3" />
+              </span>
+
+              <span
+                className="
+                  text-xs
+                  font-semibold
+                  text-slate-700
+                "
+              >
+                {item}
+              </span>
+            </div>
+          ))}
         </div>
 
         <div
@@ -1333,88 +1931,87 @@ function TrackCard({
             flex
             items-center
             justify-between
+            gap-4
             border-t
             border-slate-100
-            pt-4
+            pt-5
           "
         >
-          <div>
-            <p
-              className="
-                text-[9px]
-                font-black
-                uppercase
-                tracking-[0.15em]
-                text-slate-400
-              "
-            >
-              Evaluation
-            </p>
-
-            <p className="mt-1 text-xs font-bold text-slate-700">
-              {evaluation}
-            </p>
-          </div>
-
-          <div
+          <span
             className="
-              card-arrow
+              text-[9px]
+              font-black
+              uppercase
+              tracking-[0.14em]
+              text-slate-400
+            "
+          >
+            Explore this technical track
+          </span>
+
+          <button
+            type="button"
+            onClick={onSubmit}
+            className="
               flex
-              h-10
-              w-10
+              h-11
+              w-11
+              shrink-0
               items-center
               justify-center
               rounded-full
-              border
-              border-slate-200
-              bg-white
-              text-slate-600
-              transition-colors
-              group-hover:border-indigo-200
-              group-hover:bg-indigo-50
-              group-hover:text-indigo-600
+              bg-slate-950
+              text-white
+              transition
+              duration-300
+              group-hover:bg-indigo-600
             "
           >
-            <ArrowRight className="h-4 w-4" />
-          </div>
+            <Icon name="arrow" className="h-4 w-4" />
+          </button>
         </div>
       </div>
     </article>
   );
 }
 
-/* =========================================================
-   SPECIAL TRACK CARD
-========================================================= */
-
-function SpecialCard({ icon, title, description }) {
+function StrengthCard({ number, icon, title, text }) {
   return (
     <article
       className="
-        special-card
-        interactive-card
-        group
-        flex
-        min-h-[230px]
-        flex-col
-        justify-between
-        rounded-[1.5rem]
+        strength-card
+        rounded-[28px]
         border
         border-slate-200
-        bg-white/75
+        bg-white
         p-6
         shadow-sm
-        backdrop-blur-xl
-        transition-shadow
-        duration-500
+        transition
+        duration-300
+        hover:-translate-y-1
         hover:border-indigo-200
-        hover:shadow-[0_25px_60px_rgba(15,23,42,0.08)]
+        hover:shadow-lg
       "
     >
-      <div>
+      <div
+        className="
+          flex
+          items-start
+          justify-between
+        "
+      >
+        <span
+          className="
+            text-4xl
+            font-black
+            text-slate-100
+          "
+        >
+          {number}
+        </span>
+
         <div
           className="
-            card-icon
             flex
             h-10
             w-10
@@ -1425,50 +2022,67 @@ function SpecialCard({ icon, title, description }) {
             text-indigo-600
           "
         >
-          {icon}
+          <Icon name={icon} className="h-4 w-4" />
         </div>
-
-        <h3
-          className="
-            mt-5
-            text-lg
-            font-black
-            leading-tight
-            tracking-tight
-            text-slate-950
-          "
-        >
-          {title}
-        </h3>
-
-        <p className="mt-2 text-xs leading-5 text-slate-500">{description}</p>
       </div>
 
-      <div
+      <h3
         className="
           mt-6
-          flex
-          items-center
-          justify-between
-          border-t
-          border-slate-100
-          pt-3
+          text-lg
+          font-black
+          text-slate-950
         "
       >
-        <span
-          className="
-            text-[9px]
-            font-black
-            uppercase
-            tracking-[0.15em]
-            text-indigo-600
-          "
-        >
-          Special Award Track
-        </span>
+        {title}
+      </h3>
 
-        <ArrowRight className="card-arrow h-4 w-4 text-slate-400" />
-      </div>
+      <p
+        className="
+          mt-3
+          text-sm
+          leading-6
+          text-slate-500
+        "
+      >
+        {text}
+      </p>
     </article>
+  );
+}
+
+function DarkRule({ question, answer }) {
+  return (
+    <div
+      className="
+        rounded-2xl
+        border
+        border-white/10
+        bg-white/[0.05]
+        p-4
+        backdrop-blur
+      "
+    >
+      <p
+        className="
+          text-xs
+          font-semibold
+          text-slate-400
+        "
+      >
+        {question}
+      </p>
+
+      <p
+        className="
+          mt-1
+          text-sm
+          font-black
+          text-white
+        "
+      >
+        {answer}
+      </p>
+    </div>
   );
 }

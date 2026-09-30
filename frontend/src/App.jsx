@@ -15,6 +15,7 @@ import Categories from "./components/Categories .jsx";
 import HallofFrme from "./components/HallOfFame.jsx";
 import Footer from "./components/Footer.jsx";
 import LoginForm from "./components/Upload.jsx";
+import CustomCursor from "./components/CustomCursor.jsx";
 
 // =========================================================
 // ADMIN COMPONENTS
@@ -57,6 +58,7 @@ function SmoothScroll() {
 
     const raf = (time) => {
       lenis.raf(time);
+
       animationFrame = requestAnimationFrame(raf);
     };
 
@@ -64,6 +66,7 @@ function SmoothScroll() {
 
     return () => {
       cancelAnimationFrame(animationFrame);
+
       lenis.destroy();
     };
   }, []);
@@ -112,10 +115,16 @@ function WebsiteLayout({ children }) {
 export default function App() {
   return (
     <BrowserRouter>
-      {/* Smooth scrolling */}
+      {/* DEVNEX CUSTOM CURSOR */}
+
+      <CustomCursor />
+
+      {/* SMOOTH SCROLL */}
+
       <SmoothScroll />
 
-      {/* Reset scroll when navigating */}
+      {/* ROUTE SCROLL RESET */}
+
       <RouteScrollManager />
 
       <Routes>
@@ -156,9 +165,7 @@ export default function App() {
           }
         />
 
-        {/* =================================================
-            CATEGORIES
-        ================================================= */}
+        {/* CATEGORIES */}
 
         <Route
           path="/categories"
@@ -169,7 +176,7 @@ export default function App() {
           }
         />
 
-        {/* UPLOAD / EXPO 2026 */}
+        {/* EXPO 2026 / UPLOAD */}
 
         <Route
           path="/upload"

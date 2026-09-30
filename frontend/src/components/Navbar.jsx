@@ -1,5 +1,5 @@
-import { useState, useRef, useEffect } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Code, Mail } from "lucide-react";
 import gsap from "gsap";
 
@@ -55,7 +55,7 @@ export default function Navbar() {
   }, []);
 
   /* =====================================================
-     NAVBAR BACKGROUND
+     NAVBAR BACKGROUND ON SCROLL
   ===================================================== */
 
   useEffect(() => {
@@ -97,7 +97,7 @@ export default function Navbar() {
   };
 
   /* =====================================================
-     MOBILE MENU OPEN
+     MOBILE MENU ANIMATION
   ===================================================== */
 
   useEffect(() => {
@@ -122,7 +122,7 @@ export default function Navbar() {
   }, [isOpen]);
 
   /* =====================================================
-     MOBILE MENU CLOSE
+     CLOSE MOBILE MENU
   ===================================================== */
 
   const handleCloseMobileMenu = () => {
@@ -137,6 +137,7 @@ export default function Navbar() {
       scaleY: 0.95,
       duration: 0.2,
       ease: "power2.in",
+
       onComplete: () => {
         setIsOpen(false);
       },
@@ -144,7 +145,7 @@ export default function Navbar() {
   };
 
   /* =====================================================
-     NAV BUTTON CLASS
+     DESKTOP NAV CLASSES
   ===================================================== */
 
   const desktopNavClass = (path) => `
@@ -171,10 +172,6 @@ export default function Navbar() {
     ${activePage === path ? "w-full opacity-100" : "w-0 opacity-0"}
   `;
 
-  /* =====================================================
-     RENDER
-  ===================================================== */
-
   return (
     <header
       ref={navRef}
@@ -198,13 +195,15 @@ export default function Navbar() {
 
       <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-6">
         {/* =================================================
-            LOGO
+            LOGO — DEVNEX
         ================================================= */}
 
         <div
           onClick={() => handleNavClick("/")}
           className="group flex cursor-pointer items-center gap-3"
         >
+          {/* LOGO ICON */}
+
           <div
             className="
               flex
@@ -217,23 +216,41 @@ export default function Navbar() {
               text-white
               shadow-md
               shadow-indigo-600/20
-              transition-transform
+              transition-all
               duration-300
               group-hover:scale-105
+              group-hover:rotate-3
             "
           >
             <Code className="h-5 w-5" />
           </div>
 
-          <span className="text-xl font-bold tracking-tight text-slate-900">
-            HUBWEB
+          {/* BRAND NAME */}
+
+          <span
+            className="
+              text-xl
+              font-black
+              tracking-tight
+              text-slate-900
+              transition-colors
+              duration-300
+              group-hover:text-indigo-600
+            "
+          >
+            DEVNEX
           </span>
         </div>
 
         {/* =================================================
-            DESKTOP NAV
-            ORDER:
-            Home → About → Categories → Gallery → Expo → Hall
+            DESKTOP NAVIGATION
+
+            Home
+            About
+            Categories
+            Gallery
+            Expo 2026
+            Hall of Fame
         ================================================= */}
 
         <nav className="hidden items-center gap-8 font-medium md:flex">
@@ -257,10 +274,7 @@ export default function Navbar() {
             <span className={activeLineClass("/about")} />
           </button>
 
-          {/* =================================================
-              CATEGORIES
-              DIRECTLY AFTER ABOUT
-          ================================================= */}
+          {/* CATEGORIES */}
 
           <button
             onClick={() => handleNavClick("/categories")}
@@ -280,7 +294,7 @@ export default function Navbar() {
             <span className={activeLineClass("/features")} />
           </button>
 
-          {/* EXPO 2026 */}
+          {/* EXPO */}
 
           <button
             onClick={() => handleNavClick("/upload")}
@@ -309,12 +323,15 @@ export default function Navbar() {
           {/* SOCIAL ICONS */}
 
           <div className="hidden items-center gap-1 sm:flex">
-            {/* WHATSAPP */}
+            {/* =================================================
+                WHATSAPP
+            ================================================= */}
 
             <a
               href="https://wa.me/919999999999"
               target="_blank"
               rel="noopener noreferrer"
+              aria-label="WhatsApp"
               className="
                 group
                 flex
@@ -326,11 +343,10 @@ export default function Navbar() {
                 text-slate-600
                 transition-all
                 duration-300
+                hover:scale-110
                 hover:bg-green-50
                 hover:text-green-600
-                hover:scale-110
               "
-              aria-label="WhatsApp"
             >
               <svg
                 className="h-[20px] w-[20px] fill-current"
@@ -340,12 +356,15 @@ export default function Navbar() {
               </svg>
             </a>
 
-            {/* INSTAGRAM */}
+            {/* =================================================
+                INSTAGRAM
+            ================================================= */}
 
             <a
               href="https://instagram.com/yourusername"
               target="_blank"
               rel="noopener noreferrer"
+              aria-label="Instagram"
               className="
                 group
                 flex
@@ -357,24 +376,33 @@ export default function Navbar() {
                 text-slate-600
                 transition-all
                 duration-300
+                hover:scale-110
                 hover:bg-pink-50
                 hover:text-pink-600
-                hover:scale-110
               "
-              aria-label="Instagram"
             >
               <svg
-                className="h-[20px] w-[20px] fill-current transition-transform duration-300 group-hover:scale-110"
+                className="
+                  h-[20px]
+                  w-[20px]
+                  fill-current
+                  transition-transform
+                  duration-300
+                  group-hover:scale-110
+                "
                 viewBox="0 0 24 24"
               >
                 <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" />
               </svg>
             </a>
 
-            {/* GMAIL */}
+            {/* =================================================
+                EMAIL
+            ================================================= */}
 
             <a
               href="mailto:yourmail@gmail.com"
+              aria-label="Email"
               className="
                 group
                 flex
@@ -386,11 +414,10 @@ export default function Navbar() {
                 text-slate-600
                 transition-all
                 duration-300
+                hover:scale-110
                 hover:bg-red-50
                 hover:text-red-500
-                hover:scale-110
               "
-              aria-label="Email"
             >
               <Mail
                 className="
@@ -405,7 +432,9 @@ export default function Navbar() {
             </a>
           </div>
 
-          {/* MOBILE BUTTON */}
+          {/* =================================================
+              MOBILE MENU BUTTON
+          ================================================= */}
 
           <button
             onClick={() => (isOpen ? handleCloseMobileMenu() : setIsOpen(true))}
@@ -454,8 +483,6 @@ export default function Navbar() {
 
       {/* =====================================================
           MOBILE MENU
-          ORDER:
-          Home → About → Categories → Gallery → Expo → Hall
       ===================================================== */}
 
       {isOpen && (
@@ -483,9 +510,15 @@ export default function Navbar() {
 
           <button
             onClick={() => handleNavClick("/")}
-            className={`w-full border-b border-slate-100 py-3 text-left font-medium ${
-              activePage === "/" ? "text-indigo-600" : "text-slate-700"
-            }`}
+            className={`
+              w-full
+              border-b
+              border-slate-100
+              py-3
+              text-left
+              font-medium
+              ${activePage === "/" ? "text-indigo-600" : "text-slate-700"}
+            `}
           >
             Home
           </button>
@@ -494,25 +527,36 @@ export default function Navbar() {
 
           <button
             onClick={() => handleNavClick("/about")}
-            className={`w-full border-b border-slate-100 py-3 text-left font-medium ${
-              activePage === "/about" ? "text-indigo-600" : "text-slate-700"
-            }`}
+            className={`
+              w-full
+              border-b
+              border-slate-100
+              py-3
+              text-left
+              font-medium
+              ${activePage === "/about" ? "text-indigo-600" : "text-slate-700"}
+            `}
           >
             About
           </button>
 
-          {/* =================================================
-              CATEGORIES
-              DIRECTLY AFTER ABOUT
-          ================================================= */}
+          {/* CATEGORIES */}
 
           <button
             onClick={() => handleNavClick("/categories")}
-            className={`w-full border-b border-slate-100 py-3 text-left font-medium ${
-              activePage === "/categories"
-                ? "text-indigo-600"
-                : "text-slate-700"
-            }`}
+            className={`
+              w-full
+              border-b
+              border-slate-100
+              py-3
+              text-left
+              font-medium
+              ${
+                activePage === "/categories"
+                  ? "text-indigo-600"
+                  : "text-slate-700"
+              }
+            `}
           >
             Categories
           </button>
@@ -521,9 +565,19 @@ export default function Navbar() {
 
           <button
             onClick={() => handleNavClick("/features")}
-            className={`w-full border-b border-slate-100 py-3 text-left font-medium ${
-              activePage === "/features" ? "text-indigo-600" : "text-slate-700"
-            }`}
+            className={`
+              w-full
+              border-b
+              border-slate-100
+              py-3
+              text-left
+              font-medium
+              ${
+                activePage === "/features"
+                  ? "text-indigo-600"
+                  : "text-slate-700"
+              }
+            `}
           >
             Gallery
           </button>
@@ -532,9 +586,15 @@ export default function Navbar() {
 
           <button
             onClick={() => handleNavClick("/upload")}
-            className={`w-full border-b border-slate-100 py-3 text-left font-medium ${
-              activePage === "/upload" ? "text-indigo-600" : "text-slate-700"
-            }`}
+            className={`
+              w-full
+              border-b
+              border-slate-100
+              py-3
+              text-left
+              font-medium
+              ${activePage === "/upload" ? "text-indigo-600" : "text-slate-700"}
+            `}
           >
             Expo 2026
           </button>
@@ -543,20 +603,39 @@ export default function Navbar() {
 
           <button
             onClick={() => handleNavClick("/hall-of-fame")}
-            className={`w-full border-b border-slate-100 py-3 text-left font-medium ${
-              activePage === "/hall-of-fame"
-                ? "text-indigo-600"
-                : "text-slate-700"
-            }`}
+            className={`
+              w-full
+              border-b
+              border-slate-100
+              py-3
+              text-left
+              font-medium
+              ${
+                activePage === "/hall-of-fame"
+                  ? "text-indigo-600"
+                  : "text-slate-700"
+              }
+            `}
           >
             Hall of Fame
           </button>
 
           {/* =================================================
-              MOBILE SOCIAL BUTTONS
+              MOBILE SOCIALS
           ================================================= */}
 
-          <div className="flex items-center justify-center gap-3 border-t border-slate-100 pt-5">
+          <div
+            className="
+              flex
+              flex-wrap
+              items-center
+              justify-center
+              gap-3
+              border-t
+              border-slate-100
+              pt-5
+            "
+          >
             {/* WHATSAPP */}
 
             <a
@@ -579,7 +658,7 @@ export default function Navbar() {
               "
             >
               <svg className="h-4 w-4 fill-current" viewBox="0 0 24 24">
-                <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.16 5.335 5.495 0 12.05 0c3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448L.057 24zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z" />
+                <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.16 5.335 5.495 0 12.05 0c3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448L.057 24zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981z" />
               </svg>
               WhatsApp
             </a>
@@ -606,7 +685,7 @@ export default function Navbar() {
               "
             >
               <svg className="h-4 w-4 fill-current" viewBox="0 0 24 24">
-                <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" />
+                <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069z" />
               </svg>
               Instagram
             </a>

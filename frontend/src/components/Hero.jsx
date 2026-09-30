@@ -355,7 +355,7 @@ export default function Hero() {
   return (
     <section
       ref={sectionRef}
-      className="relative overflow-hidden bg-slate-50 pb-24 pt-4 text-slate-900 lg:pt-6"
+      className="relative overflow-hidden bg-slate-50 pb-20 pt-0 text-slate-900"
     >
       {/* BACKGROUND */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
@@ -380,22 +380,22 @@ export default function Hero() {
 
       <div className="relative z-10 mx-auto w-full max-w-7xl px-6">
         {/* HERO */}
-        <div className="grid min-w-0 grid-cols-1 items-center gap-10 pt-3 lg:grid-cols-12 lg:pt-8">
-          <div className="min-w-0 space-y-5 text-center lg:col-span-6 lg:text-left">
+        <div className="grid min-w-0 grid-cols-1 items-center gap-8 pt-3 lg:-mt-2 lg:grid-cols-12 lg:gap-10 lg:pt-5">
+          <div className="min-w-0 space-y-4 text-center lg:col-span-6 lg:text-left">
             <div
               ref={badgeRef}
               className="inline-flex items-center gap-2 rounded-full border border-indigo-100/80 bg-indigo-50/90 px-4 py-1.5 shadow-sm backdrop-blur-sm"
             >
               <Users className="h-4 w-4 text-indigo-600" />
               <span className="text-xs font-semibold text-indigo-900">
-                <strong className="text-indigo-600">Over 1,000+</strong> Student
+                <strong className="text-indigo-600">Over 3,000+</strong> Student
                 Developers Participating Across Mumbai & MMR
               </span>
             </div>
 
             <h1
               ref={headlineRef}
-              className="text-4xl font-extrabold leading-[1.03] tracking-tight text-slate-900 opacity-0 sm:text-5xl lg:text-6xl"
+              className="text-4xl font-extrabold leading-[0.98] tracking-tight text-slate-900 opacity-0 sm:text-5xl lg:text-[54px] xl:text-[58px]"
             >
               Build Your Code.{" "}
               <span className="text-indigo-600">Prove Your Skill.</span> Enter
@@ -406,7 +406,7 @@ export default function Hero() {
               ref={textRef}
               className="mx-auto max-w-xl text-base leading-relaxed text-slate-600 opacity-0 sm:text-lg lg:mx-0"
             >
-              HUBWEB is a student developer challenge and talent-discovery
+              DEVNEX is a student developer challenge and talent-discovery
               platform where builders submit real projects, defend their code,
               earn verified recognition, and compete for category and season
               awards.
@@ -437,7 +437,7 @@ export default function Hero() {
 
             <div
               ref={buttonsRef}
-              className="flex flex-col items-center justify-center gap-3 pt-2 opacity-0 sm:flex-row lg:justify-start"
+              className="flex flex-col items-center justify-center gap-3 opacity-0 sm:flex-row lg:justify-start"
             >
               <a
                 href="/upload"
@@ -912,7 +912,7 @@ function SectionLabel({ children }) {
 
 function FeaturePill({ icon, title, text }) {
   return (
-    <div className="flex min-w-0 flex-col items-center rounded-2xl border border-slate-200/80 bg-white/80 p-3 shadow-sm backdrop-blur-md lg:items-start">
+    <div className="flex min-w-0 flex-col items-center rounded-2xl border border-slate-200/80 bg-white/80 p-2.5 shadow-sm backdrop-blur-md lg:items-start">
       <div className="mb-2 flex h-8 w-8 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
         {icon}
       </div>
