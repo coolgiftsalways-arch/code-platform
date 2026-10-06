@@ -382,6 +382,30 @@ export default function Upload() {
     });
   };
 
+  const allConsentsSelected =
+    formData.originalityConsent &&
+    formData.technicalDefense &&
+    formData.rulesConsent &&
+    formData.privacyConsent &&
+    formData.feeAcknowledgement &&
+    formData.hiringOptIn;
+
+  const handleSelectAllConsents = (event) => {
+    const checked = event.target.checked;
+
+    setErrorMessage("");
+
+    setFormData((previous) => ({
+      ...previous,
+      originalityConsent: checked,
+      technicalDefense: checked,
+      rulesConsent: checked,
+      privacyConsent: checked,
+      feeAcknowledgement: checked,
+      hiringOptIn: checked,
+    }));
+  };
+
   /* =====================================================
      TECH STACK
   ===================================================== */
@@ -597,29 +621,35 @@ export default function Upload() {
 
   if (submitted) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#fafafa] px-4">
-        <div className="w-full max-w-xl rounded-[30px] border border-slate-200 bg-white p-9 text-center shadow-xl">
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-indigo-600 text-white">
-            <Icon name="check" className="h-7 w-7" />
+      <div className="fixed inset-0 z-[99999] flex min-h-screen items-center justify-center bg-slate-950/45 px-4 py-8 backdrop-blur-sm">
+        <div className="w-full max-w-xl rounded-[30px] border border-slate-200 bg-white p-8 text-center shadow-2xl sm:p-10">
+          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-indigo-600 text-white shadow-lg shadow-indigo-600/25">
+            <Icon name="check" className="h-9 w-9" />
           </div>
 
           <p className="mt-6 text-[10px] font-black uppercase tracking-[0.2em] text-indigo-600">
             DEVNEX Submission
           </p>
 
-          <h1 className="mt-2 text-3xl font-black text-slate-950">
-            Project submitted.
+          <h1 className="mt-2 text-3xl font-black text-slate-950 sm:text-4xl">
+            Project submitted successfully!
           </h1>
 
-          <p className="mt-3 text-sm leading-6 text-slate-500">
-            Your project information has been received successfully.
+          <p className="mx-auto mt-4 max-w-md text-sm leading-6 text-slate-600 sm:text-base">
+            Thank you for participating in DEVNEX. We have received your project
+            successfully. Our team will contact you within 24 hours.
           </p>
 
+          <div className="mt-5 rounded-2xl border border-indigo-100 bg-indigo-50 px-4 py-3 text-sm font-semibold text-indigo-700">
+            Please keep your phone, WhatsApp and email available for our team.
+          </div>
+
           <button
+            type="button"
             onClick={() => {
               window.location.href = "/";
             }}
-            className="mt-8 w-full rounded-xl bg-indigo-600 py-3.5 text-sm font-bold text-white"
+            className="mt-7 w-full rounded-xl bg-indigo-600 py-3.5 text-sm font-bold text-white transition hover:bg-indigo-700"
           >
             Back to Home
           </button>
@@ -1073,6 +1103,36 @@ export default function Upload() {
                       <option value="Other">Other</option>
                     </select>
                   </Field>
+
+                  <label
+                    className={`flex cursor-pointer gap-3 rounded-2xl border p-4 transition ${
+                      allConsentsSelected
+                        ? "border-indigo-300 bg-indigo-100"
+                        : "border-indigo-200 bg-white"
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={allConsentsSelected}
+                      onChange={handleSelectAllConsents}
+                      className="mt-1 accent-indigo-600"
+                    />
+
+                    <span>
+                      <strong className="text-sm text-indigo-700">
+                        Select All
+                      </strong>
+
+                      <span className="ml-2 rounded-full bg-indigo-600 px-2 py-0.5 text-[8px] font-bold uppercase text-white">
+                        One Click
+                      </span>
+
+                      <span className="mt-1 block text-xs leading-5 text-slate-500">
+                        Select this to automatically accept all declarations
+                        below.
+                      </span>
+                    </span>
+                  </label>
 
                   <ConsentBox
                     name="originalityConsent"

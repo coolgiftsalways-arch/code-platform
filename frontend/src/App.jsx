@@ -1,6 +1,5 @@
 import { useEffect } from "react";
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
-
 import Lenis from "lenis";
 
 // =========================================================
@@ -16,6 +15,9 @@ import HallofFrme from "./components/HallOfFame.jsx";
 import Footer from "./components/Footer.jsx";
 import LoginForm from "./components/Upload.jsx";
 import CustomCursor from "./components/CustomCursor.jsx";
+
+// NEW SPONSORS PAGE
+import Sponsors from "./components/Sponsors.jsx";
 
 // =========================================================
 // ADMIN COMPONENTS
@@ -99,10 +101,13 @@ function RouteScrollManager() {
 function WebsiteLayout({ children }) {
   return (
     <div className="min-h-screen bg-[#f8fafc] text-slate-900">
+      {/* GLOBAL NAVBAR */}
       <Navbar />
 
+      {/* PAGE CONTENT */}
       <main className="pt-20">{children}</main>
 
+      {/* GLOBAL FOOTER */}
       <Footer />
     </div>
   );
@@ -115,24 +120,34 @@ function WebsiteLayout({ children }) {
 export default function App() {
   return (
     <BrowserRouter>
-      {/* DEVNEX CUSTOM CURSOR */}
+      {/* =====================================================
+          DEVNEX CUSTOM CURSOR
+      ===================================================== */}
 
       <CustomCursor />
 
-      {/* SMOOTH SCROLL */}
+      {/* =====================================================
+          LENIS SMOOTH SCROLL
+      ===================================================== */}
 
       <SmoothScroll />
 
-      {/* ROUTE SCROLL RESET */}
+      {/* =====================================================
+          RESET SCROLL ON ROUTE CHANGE
+      ===================================================== */}
 
       <RouteScrollManager />
 
-      <Routes>
-        {/* =================================================
-            WEBSITE ROUTES
-        ================================================= */}
+      {/* =====================================================
+          ROUTES
+      ===================================================== */}
 
-        {/* HOME */}
+      <Routes>
+        {/* =====================================================
+            WEBSITE ROUTES
+        ===================================================== */}
+
+        {/* ================= HOME ================= */}
 
         <Route
           path="/"
@@ -143,7 +158,7 @@ export default function App() {
           }
         />
 
-        {/* ABOUT */}
+        {/* ================= ABOUT ================= */}
 
         <Route
           path="/about"
@@ -154,18 +169,7 @@ export default function App() {
           }
         />
 
-        {/* GALLERY */}
-
-        <Route
-          path="/features"
-          element={
-            <WebsiteLayout>
-              <Gallery />
-            </WebsiteLayout>
-          }
-        />
-
-        {/* CATEGORIES */}
+        {/* ================= CATEGORIES ================= */}
 
         <Route
           path="/categories"
@@ -176,7 +180,31 @@ export default function App() {
           }
         />
 
-        {/* EXPO 2026 / UPLOAD */}
+        {/* ================= GALLERY / FEATURES ================= */}
+
+        <Route
+          path="/features"
+          element={
+            <WebsiteLayout>
+              <Gallery />
+            </WebsiteLayout>
+          }
+        />
+
+        {/* =====================================================
+            SPONSORS
+        ===================================================== */}
+
+        <Route
+          path="/sponsors"
+          element={
+            <WebsiteLayout>
+              <Sponsors />
+            </WebsiteLayout>
+          }
+        />
+
+        {/* ================= EXPO 2026 / UPLOAD ================= */}
 
         <Route
           path="/upload"
@@ -189,7 +217,7 @@ export default function App() {
           }
         />
 
-        {/* HALL OF FAME */}
+        {/* ================= HALL OF FAME ================= */}
 
         <Route
           path="/hall-of-fame"
@@ -200,11 +228,11 @@ export default function App() {
           }
         />
 
-        {/* =================================================
+        {/* =====================================================
             ADMIN ROUTES
-        ================================================= */}
+        ===================================================== */}
 
-        {/* DASHBOARD */}
+        {/* ================= DASHBOARD ================= */}
 
         <Route
           path="/admin/dashboard"
@@ -215,7 +243,7 @@ export default function App() {
           }
         />
 
-        {/* PARTICIPANTS */}
+        {/* ================= PARTICIPANTS ================= */}
 
         <Route
           path="/admin/participants"
@@ -226,7 +254,7 @@ export default function App() {
           }
         />
 
-        {/* SUBMISSIONS */}
+        {/* ================= SUBMISSIONS ================= */}
 
         <Route
           path="/admin/submissions"
@@ -237,7 +265,7 @@ export default function App() {
           }
         />
 
-        {/* WINNERS */}
+        {/* ================= WINNERS ================= */}
 
         <Route
           path="/admin/winners"
@@ -248,7 +276,7 @@ export default function App() {
           }
         />
 
-        {/* QUALIFICATION */}
+        {/* ================= QUALIFICATION ================= */}
 
         <Route
           path="/admin/qualification"
@@ -259,7 +287,7 @@ export default function App() {
           }
         />
 
-        {/* PAYMENTS */}
+        {/* ================= PAYMENTS ================= */}
 
         <Route
           path="/admin/payments"
@@ -270,7 +298,7 @@ export default function App() {
           }
         />
 
-        {/* DEFENSE SCHEDULE */}
+        {/* ================= DEFENSE SCHEDULE ================= */}
 
         <Route
           path="/admin/defense"
@@ -281,7 +309,7 @@ export default function App() {
           }
         />
 
-        {/* FINALISTS */}
+        {/* ================= FINALISTS ================= */}
 
         <Route
           path="/admin/finalists"
@@ -292,7 +320,7 @@ export default function App() {
           }
         />
 
-        {/* NOTIFICATIONS */}
+        {/* ================= NOTIFICATIONS ================= */}
 
         <Route
           path="/admin/notifications"
@@ -303,7 +331,7 @@ export default function App() {
           }
         />
 
-        {/* SETTINGS */}
+        {/* ================= SETTINGS ================= */}
 
         <Route
           path="/admin/settings"

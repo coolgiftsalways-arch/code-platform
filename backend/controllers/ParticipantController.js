@@ -1,249 +1,107 @@
+import mongoose from "mongoose";
+
 import Participant from "../models/Participant.js";
 
-/*
-=========================================================
-CREATE PARTICIPANT
-POST /api/participants
-=========================================================
-*/
+/* =========================================================
+   HELPERS
+========================================================= */
+
+function normalizeTechStack(value) {
+  if (Array.isArray(value)) {
+    return value.map((item) => String(item || "").trim()).filter(Boolean);
+  }
+
+  if (typeof value === "string") {
+    return value
+      .split(",")
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+
+  return [];
+}
+
+function isValidMongoId(id) {
+  return mongoose.Types.ObjectId.isValid(String(id || ""));
+}
+
+/* =========================================================
+   CREATE PARTICIPANT
+   POST /api/participants
+========================================================= */
 
 export const createParticipant = async (req, res) => {
   try {
-    const data = req.body;
+    const body = req.body || {};
 
-    console.log("=================================");
-    console.log("📥 CREATE PARTICIPANT");
-    console.log("=================================");
-    console.log(data);
+    const payload = {
+      ...body,
 
-    if (!data.email) {
-      return res.status(400).json({
-        success: false,
-        message: "Email is required",
-      });
-    }
+      email: String(body.email || "")
+        .trim()
+        .toLowerCase(),
 
-    /*
-    -------------------------------------------------------
-    PREVENT DUPLICATE EMAIL
-    -------------------------------------------------------
-    */
+      techStack: normalizeTechStack(body.techStack),
 
-    const existingParticipant = await Participant.findOne({
-      email: data.email.toLowerCase().trim(),
-    });
+      status: String(body.status || "Application Received").trim(),
 
-    if (existingParticipant) {
-      return res.status(409).json({
-        success: false,
-        message: "A participant with this email already exists",
-        participant: existingParticipant,
-      });
-    }
+      paymentStatus: String(body.paymentStatus || "Pending").trim(),
+    };
 
-    /*
-    -------------------------------------------------------
-    NORMALIZE TECH STACK
-    -------------------------------------------------------
-    */
-
-    let techStack = [];
-
-    if (Array.isArray(data.techStack)) {
-      techStack = data.techStack;
-    } else if (typeof data.techStack === "string") {
-      techStack = data.techStack
-        .split(",")
-        .map((item) => item.trim())
-        .filter(Boolean);
-    }
-
-    /*
-    -------------------------------------------------------
-    CREATE PARTICIPANT
-    -------------------------------------------------------
-    */
-
-    const participant = await Participant.create({
-      firstName: data.firstName || "",
-      lastName: data.lastName || "",
-
-      fullName:
-        data.fullName ||
-        `${data.firstName || ""} ${data.lastName || ""}`.trim(),
-
-      age:
-        data.age !== undefined && data.age !== null && data.age !== ""
-          ? Number(data.age)
-          : null,
-
-      mobile: data.mobile || data.phone || "",
-      phone: data.phone || data.mobile || "",
-
-      email: data.email.toLowerCase().trim(),
-
-      gmail: data.gmail || data.email || "",
-
-      city: data.city || "",
-
-      address: data.address || "",
-
-      linkedin: data.linkedin || "",
-
-      /*
-      -----------------------------------------------------
-      INSTITUTE
-      -----------------------------------------------------
-      */
-
-      instituteName: data.instituteName || "",
-
-      instituteCode: data.instituteCode || "",
-
-      className: data.className || "",
-
-      classAddress: data.classAddress || "",
-
-      /*
-      -----------------------------------------------------
-      PROJECT
-      -----------------------------------------------------
-      */
-
-      projectTitle: data.projectTitle || "",
-
-      category: data.category || "",
-
-      techStack,
-
-      githubUrl: data.githubUrl || "",
-
-      liveDemoUrl: data.liveDemoUrl || "",
-
-      /*
-      -----------------------------------------------------
-      AI / VERIFICATION
-      -----------------------------------------------------
-      */
-
-      aiTool: data.aiTool || "None",
-
-      technicalDefense:
-        data.technicalDefense === true || data.technicalDefense === "true",
-
-      hiringOptIn: data.hiringOptIn === true || data.hiringOptIn === "true",
-
-      /*
-      -----------------------------------------------------
-      DEFAULT ADMIN VALUES
-      -----------------------------------------------------
-      */
-
-      status: "Application Received",
-
-      paymentStatus: "Pending",
-
-      finalistFee: 399,
-
-      razorpayOrderId: null,
-
-      razorpayPaymentId: null,
-
-      defenseStatus: "Not Scheduled",
-
-      defenseSlot: null,
-
-      defenseNotes: "",
-
-      finalistPass: false,
-
-      certificateIssued: false,
-
-      isWinner: false,
-
-      winnerRank: null,
-
-      winnerAt: null,
-
-      /*
-      -----------------------------------------------------
-      ADDONS
-      -----------------------------------------------------
-      */
-
-      addons: {
-        codeFeedback: data.addons?.codeFeedback === true,
-
-        physicalRecognition: data.addons?.physicalRecognition === true,
-
-        championShowcase: data.addons?.championShowcase === true,
-      },
-    });
-
-    console.log("✅ PARTICIPANT CREATED");
-    console.log(participant._id);
+    const participant = await Participant.create(payload);
 
     return res.status(201).json({
       success: true,
-      message: "Participant registered successfully",
+
+      message: "Participant created successfully.",
+
       participant,
     });
   } catch (error) {
     console.error("❌ Create participant error:", error);
 
-    /*
-    -------------------------------------------------------
-    MONGOOSE VALIDATION ERROR
-    -------------------------------------------------------
-    */
-
-    if (error.name === "ValidationError") {
-      const errors = Object.values(error.errors).map((item) => item.message);
-
-      return res.status(400).json({
+    if (error?.code === 11000) {
+      return res.status(409).json({
         success: false,
-        message: "Validation failed",
-        errors,
+
+        message:
+          "A participant with the same unique information already exists.",
       });
     }
 
-    /*
-    -------------------------------------------------------
-    DUPLICATE KEY
-    -------------------------------------------------------
-    */
-
-    if (error.code === 11000) {
-      return res.status(409).json({
+    if (error?.name === "ValidationError") {
+      return res.status(400).json({
         success: false,
-        message: "A participant with this email already exists",
+        message: error.message,
       });
     }
 
     return res.status(500).json({
       success: false,
-      message: "Failed to create participant",
+
+      message: "Failed to create participant.",
+
       error: error.message,
     });
   }
 };
 
-/*
-=========================================================
-GET ALL PARTICIPANTS
-GET /api/participants
-=========================================================
-*/
+/* =========================================================
+   GET ALL PARTICIPANTS
+   GET /api/participants
+========================================================= */
 
-export const getParticipants = async (req, res) => {
+export const getParticipants = async (_req, res) => {
   try {
-    const participants = await Participant.find({})
-      .sort({ createdAt: -1 })
-      .lean();
+    const participants = await Participant.find({}).sort({
+      createdAt: -1,
+    });
 
     return res.status(200).json({
       success: true,
+
       count: participants.length,
+
       participants,
     });
   } catch (error) {
@@ -251,29 +109,38 @@ export const getParticipants = async (req, res) => {
 
     return res.status(500).json({
       success: false,
-      message: "Failed to fetch participants",
+
+      message: "Failed to fetch participants.",
+
       error: error.message,
     });
   }
 };
 
-/*
-=========================================================
-GET SINGLE PARTICIPANT
-GET /api/participants/:id
-=========================================================
-*/
+/* =========================================================
+   GET ONE PARTICIPANT
+   GET /api/participants/:id
+========================================================= */
 
 export const getParticipant = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const participant = await Participant.findById(id).lean();
+    if (!isValidMongoId(id)) {
+      return res.status(400).json({
+        success: false,
+
+        message: "Invalid participant ID.",
+      });
+    }
+
+    const participant = await Participant.findById(id);
 
     if (!participant) {
       return res.status(404).json({
         success: false,
-        message: "Participant not found",
+
+        message: "Participant not found.",
       });
     }
 
@@ -286,7 +153,134 @@ export const getParticipant = async (req, res) => {
 
     return res.status(500).json({
       success: false,
-      message: "Failed to fetch participant",
+
+      message: "Failed to fetch participant.",
+
+      error: error.message,
+    });
+  }
+};
+
+/* =========================================================
+   UPDATE PARTICIPANT STATUS
+   PATCH /api/participants/:id/status
+========================================================= */
+
+export const updateParticipantStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const status = String(req.body?.status || "").trim();
+
+    if (!isValidMongoId(id)) {
+      return res.status(400).json({
+        success: false,
+
+        message: "Invalid participant ID.",
+      });
+    }
+
+    if (!status) {
+      return res.status(400).json({
+        success: false,
+
+        message: "Status is required.",
+      });
+    }
+
+    const participant = await Participant.findByIdAndUpdate(
+      id,
+      {
+        status,
+      },
+      {
+        new: true,
+        runValidators: true,
+      },
+    );
+
+    if (!participant) {
+      return res.status(404).json({
+        success: false,
+
+        message: "Participant not found.",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+
+      message: "Participant status updated successfully.",
+
+      participant,
+    });
+  } catch (error) {
+    console.error("❌ Update participant status error:", error);
+
+    if (error?.name === "ValidationError") {
+      return res.status(400).json({
+        success: false,
+
+        message: error.message,
+      });
+    }
+
+    return res.status(500).json({
+      success: false,
+
+      message: "Failed to update participant status.",
+
+      error: error.message,
+    });
+  }
+};
+
+/* =========================================================
+   DELETE PARTICIPANT
+   DELETE /api/participants/:id
+========================================================= */
+
+export const deleteParticipant = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    console.log("🗑 DELETE PARTICIPANT REQUEST:", id);
+
+    if (!isValidMongoId(id)) {
+      return res.status(400).json({
+        success: false,
+
+        message: "Invalid participant ID.",
+      });
+    }
+
+    const participant = await Participant.findByIdAndDelete(id);
+
+    if (!participant) {
+      return res.status(404).json({
+        success: false,
+
+        message: "Participant not found.",
+      });
+    }
+
+    console.log("✅ PARTICIPANT DELETED:", id);
+
+    return res.status(200).json({
+      success: true,
+
+      message: "Participant deleted successfully.",
+
+      deletedParticipantId: id,
+    });
+  } catch (error) {
+    console.error("❌ Delete participant error:", error);
+
+    return res.status(500).json({
+      success: false,
+
+      message: "Failed to delete participant.",
+
       error: error.message,
     });
   }

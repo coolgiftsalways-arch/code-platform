@@ -361,7 +361,7 @@ export default function AboutUs() {
   return (
     <main
       ref={pageRef}
-      className="relative overflow-hidden bg-[#f8f9fc] pb-24 pt-24 text-slate-950"
+      className="relative overflow-hidden bg-[#f8f9fc] pb-24 pt-8 text-slate-950 lg:pt-10"
     >
       {/* =====================================================
           BACKGROUND
@@ -392,7 +392,7 @@ export default function AboutUs() {
             HERO
         ===================================================== */}
 
-        <section className="grid min-h-[640px] items-center gap-12 lg:grid-cols-12">
+        <section className="grid items-center gap-10 py-8 lg:min-h-[calc(100vh-120px)] lg:grid-cols-12 lg:py-4">
           <div className="lg:col-span-6">
             <div
               ref={badgeRef}

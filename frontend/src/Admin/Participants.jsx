@@ -22,6 +22,7 @@ import {
   CheckCircle2,
   Clock3,
   CircleUserRound,
+  Trash2,
 } from "lucide-react";
 
 export default function Participants() {
@@ -34,6 +35,7 @@ export default function Participants() {
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
   const [selectedParticipant, setSelectedParticipant] = useState(null);
+  const [deletingParticipantId, setDeletingParticipantId] = useState(null);
 
   // =========================================================
   // FETCH PARTICIPANTS
@@ -44,7 +46,7 @@ export default function Participants() {
       setLoading(true);
       setError("");
 
-      const response = await fetch("http://localhost:5000/api/participants");
+      const response = await fetch("/api/participants");
 
       const data = await response.json();
 
@@ -59,6 +61,87 @@ export default function Participants() {
       setError(error.message || "Unable to connect to the backend server.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  // =========================================================
+  // DELETE PARTICIPANT
+  // =========================================================
+
+  const deleteParticipant = async (participant) => {
+    const participantId = participant?._id || participant?.id;
+
+    if (!participantId) {
+      window.alert("Participant ID is missing.");
+      return;
+    }
+
+    const participantName =
+      participant?.fullName ||
+      [participant?.firstName, participant?.lastName]
+        .filter(Boolean)
+        .join(" ")
+        .trim() ||
+      "this participant";
+
+    const confirmed = window.confirm(
+      `Delete ${participantName}? This action cannot be undone.`,
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      setDeletingParticipantId(participantId);
+      setError("");
+
+      const response = await fetch(
+        `http://localhost:5000/api/participants/${encodeURIComponent(participantId)}`,
+        {
+          method: "DELETE",
+          headers: {
+            Accept: "application/json",
+          },
+        },
+      );
+
+      let data = {};
+
+      const responseText = await response.text();
+
+      if (responseText) {
+        try {
+          data = JSON.parse(responseText);
+        } catch {
+          data = {};
+        }
+      }
+
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to delete participant");
+      }
+
+      setParticipants((currentParticipants) =>
+        currentParticipants.filter(
+          (currentParticipant) =>
+            String(currentParticipant?._id || currentParticipant?.id) !==
+            String(participantId),
+        ),
+      );
+
+      setSelectedParticipant((currentParticipant) => {
+        const currentId = currentParticipant?._id || currentParticipant?.id;
+
+        return String(currentId || "") === String(participantId)
+          ? null
+          : currentParticipant;
+      });
+    } catch (deleteError) {
+      console.error("Delete participant error:", deleteError);
+      window.alert(deleteError.message || "Unable to delete this participant.");
+    } finally {
+      setDeletingParticipantId(null);
     }
   };
 
@@ -84,6 +167,8 @@ export default function Participants() {
     return participants.filter((participant) => {
       const values = [
         participant.fullName,
+        participant.firstName,
+        participant.lastName,
         participant.email,
         participant.mobile,
         participant.city,
@@ -122,17 +207,145 @@ export default function Participants() {
   ).length;
 
   // =========================================================
-  // FORMAT DATE
+  // PARTICIPANT NAME
   // =========================================================
 
-  const formatDate = (date) => {
+  const getParticipantName = (participant) => {
+    if (!participant) return "—";
+
+    const fullName = String(participant.fullName || "").trim();
+
+    if (fullName) {
+      return fullName;
+    }
+
+    const firstName = String(participant.firstName || "").trim();
+    const lastName = String(participant.lastName || "").trim();
+
+    const combinedName = [firstName, lastName].filter(Boolean).join(" ").trim();
+
+    return combinedName || "—";
+  };
+
+  // =========================================================
+  // SUBMISSION DATE / TIME
+  //
+  // Uses createdAt when available.
+  // For older MongoDB records without createdAt, it can derive
+  // the creation time from the ObjectId.
+  // =========================================================
+
+  const getParticipantTimestamp = (participant) => {
+    if (!participant) return null;
+
+    const directTimestamp =
+      participant.createdAt ||
+      participant.submittedAt ||
+      participant.created_at ||
+      participant.dateCreated;
+
+    if (directTimestamp) {
+      const directDate = new Date(directTimestamp);
+
+      if (!Number.isNaN(directDate.getTime())) {
+        return directDate;
+      }
+    }
+
+    const mongoId = String(participant._id || participant.id || "");
+
+    if (/^[0-9a-fA-F]{24}$/.test(mongoId)) {
+      const seconds = Number.parseInt(mongoId.slice(0, 8), 16);
+      const objectIdDate = new Date(seconds * 1000);
+
+      if (!Number.isNaN(objectIdDate.getTime())) {
+        return objectIdDate;
+      }
+    }
+
+    return null;
+  };
+
+  const formatSubmittedDay = (participant) => {
+    const date = getParticipantTimestamp(participant);
+
     if (!date) return "—";
 
-    return new Date(date).toLocaleDateString("en-IN", {
+    return date.toLocaleDateString("en-IN", {
+      weekday: "long",
+      timeZone: "Asia/Kolkata",
+    });
+  };
+
+  const formatSubmittedDate = (participant) => {
+    const date = getParticipantTimestamp(participant);
+
+    if (!date) return "—";
+
+    return date.toLocaleDateString("en-IN", {
       day: "2-digit",
       month: "short",
       year: "numeric",
+      timeZone: "Asia/Kolkata",
     });
+  };
+
+  const formatSubmittedTime = (participant) => {
+    const date = getParticipantTimestamp(participant);
+
+    if (!date) return "—";
+
+    return date.toLocaleTimeString("en-IN", {
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: true,
+      timeZone: "Asia/Kolkata",
+    });
+  };
+
+  const formatSubmittedFull = (participant) => {
+    const date = getParticipantTimestamp(participant);
+
+    if (!date) return "—";
+
+    const day = formatSubmittedDay(participant);
+    const dateText = formatSubmittedDate(participant);
+    const timeText = formatSubmittedTime(participant);
+
+    return `${day}, ${dateText} at ${timeText}`;
+  };
+
+  const formatDateTime = (dateValue) => {
+    if (!dateValue) return "—";
+
+    const date = new Date(dateValue);
+
+    if (Number.isNaN(date.getTime())) {
+      return "—";
+    }
+
+    const day = date.toLocaleDateString("en-IN", {
+      weekday: "long",
+      timeZone: "Asia/Kolkata",
+    });
+
+    const dateText = date.toLocaleDateString("en-IN", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      timeZone: "Asia/Kolkata",
+    });
+
+    const timeText = date.toLocaleTimeString("en-IN", {
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: true,
+      timeZone: "Asia/Kolkata",
+    });
+
+    return `${day}, ${dateText} at ${timeText}`;
   };
 
   // =========================================================
@@ -427,7 +640,7 @@ export default function Participants() {
 
             {filteredParticipants.length > 0 ? (
               <div className="overflow-x-auto">
-                <table className="w-full min-w-[1200px]">
+                <table className="w-full min-w-[1420px]">
                   <thead>
                     <tr className="border-b border-slate-100 bg-slate-50 text-left">
                       <th className="border-r border-slate-200 px-6 py-4 text-[9px] font-black uppercase tracking-wider text-slate-400 last:border-r-0">
@@ -448,6 +661,10 @@ export default function Participants() {
 
                       <th className="border-r border-slate-200 px-6 py-4 text-[9px] font-black uppercase tracking-wider text-slate-400 last:border-r-0">
                         Contact
+                      </th>
+
+                      <th className="border-r border-slate-200 px-6 py-4 text-[9px] font-black uppercase tracking-wider text-slate-400 last:border-r-0">
+                        Submitted
                       </th>
 
                       <th className="border-r border-slate-200 px-6 py-4 text-[9px] font-black uppercase tracking-wider text-slate-400 last:border-r-0">
@@ -475,13 +692,16 @@ export default function Participants() {
                         <td className="border-r border-slate-200 px-6 py-5 last:border-r-0">
                           <div className="flex items-center gap-3">
                             <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-sm font-black text-indigo-600">
-                              {participant.fullName?.charAt(0)?.toUpperCase() ||
-                                "?"}
+                              {getParticipantName(participant) !== "—"
+                                ? getParticipantName(participant)
+                                    .charAt(0)
+                                    .toUpperCase()
+                                : "?"}
                             </div>
 
                             <div className="min-w-0">
                               <p className="truncate text-sm font-black text-slate-900">
-                                {participant.fullName || "—"}
+                                {getParticipantName(participant)}
                               </p>
 
                               <p className="mt-1 flex items-center gap-1 text-[10px] text-slate-400">
@@ -547,6 +767,26 @@ export default function Participants() {
                           </p>
                         </td>
 
+                        {/* SUBMITTED */}
+
+                        <td className="border-r border-slate-200 px-6 py-5 last:border-r-0">
+                          <div className="min-w-[155px]">
+                            <div className="flex items-center gap-1.5 text-xs font-black text-slate-700">
+                              <CalendarDays className="h-3.5 w-3.5 text-indigo-500" />
+                              {formatSubmittedDay(participant)}
+                            </div>
+
+                            <p className="mt-1 text-[10px] font-semibold text-slate-500">
+                              {formatSubmittedDate(participant)}
+                            </p>
+
+                            <p className="mt-1 flex items-center gap-1 text-[10px] text-slate-400">
+                              <Clock3 className="h-3 w-3" />
+                              {formatSubmittedTime(participant)}
+                            </p>
+                          </div>
+                        </td>
+
                         {/* STATUS */}
 
                         <td className="border-r border-slate-200 px-6 py-5 last:border-r-0">
@@ -578,32 +818,36 @@ export default function Participants() {
                         {/* ACTION */}
 
                         <td className="border-r border-slate-200 px-6 py-5 last:border-r-0">
-                          <button
-                            type="button"
-                            onClick={() => setSelectedParticipant(participant)}
-                            className="
-    flex
-    h-10
-    w-10
-    items-center
-    justify-center
-    rounded-xl
-    border
-    border-slate-200
-    bg-white
-    text-slate-400
-    shadow-sm
-    transition-all
-    duration-200
-    hover:border-indigo-200
-    hover:bg-indigo-50
-    hover:text-indigo-600
-    hover:shadow-md
-  "
-                            title="View participant"
-                          >
-                            <Eye className="h-4 w-4" />
-                          </button>
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setSelectedParticipant(participant)
+                              }
+                              className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-400 shadow-sm transition-all duration-200 hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-600 hover:shadow-md"
+                              title="View participant"
+                            >
+                              <Eye className="h-4 w-4" />
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => deleteParticipant(participant)}
+                              disabled={
+                                deletingParticipantId ===
+                                (participant._id || participant.id)
+                              }
+                              className="flex h-10 w-10 items-center justify-center rounded-xl border border-red-100 bg-white text-red-400 shadow-sm transition-all duration-200 hover:border-red-200 hover:bg-red-50 hover:text-red-600 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50"
+                              title="Delete participant"
+                            >
+                              {deletingParticipantId ===
+                              (participant._id || participant.id) ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Trash2 className="h-4 w-4" />
+                              )}
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -659,8 +903,11 @@ export default function Participants() {
             <div className="flex items-center justify-between border-b border-slate-200 px-6 py-5 sm:px-8">
               <div className="flex items-center gap-4">
                 <div className="flex h-12 w-12 items-center justify-center rounded-full bg-indigo-100 text-lg font-black text-indigo-600">
-                  {selectedParticipant.fullName?.charAt(0)?.toUpperCase() ||
-                    "?"}
+                  {getParticipantName(selectedParticipant) !== "—"
+                    ? getParticipantName(selectedParticipant)
+                        .charAt(0)
+                        .toUpperCase()
+                    : "?"}
                 </div>
 
                 <div>
@@ -669,11 +916,11 @@ export default function Participants() {
                   </p>
 
                   <h2 className="mt-1 text-xl font-black text-slate-900">
-                    {selectedParticipant.fullName || "—"}
+                    {getParticipantName(selectedParticipant)}
                   </h2>
 
                   <p className="mt-1 text-xs text-slate-400">
-                    Registered {formatDate(selectedParticipant.createdAt)}
+                    Submitted {formatSubmittedFull(selectedParticipant)}
                   </p>
                 </div>
               </div>
@@ -701,7 +948,12 @@ export default function Participants() {
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                   <InfoItem
                     label="Full Name"
-                    value={selectedParticipant.fullName}
+                    value={getParticipantName(selectedParticipant)}
+                  />
+
+                  <InfoItem
+                    label="Submitted"
+                    value={formatSubmittedFull(selectedParticipant)}
                   />
 
                   <InfoItem
@@ -1041,8 +1293,6 @@ export default function Participants() {
                 </div>
               </section>
 
-              
-
               {/* RECORD INFORMATION */}
 
               <section className="mt-8">
@@ -1054,12 +1304,12 @@ export default function Participants() {
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <InfoItem
                     label="Registered"
-                    value={formatDate(selectedParticipant.createdAt)}
+                    value={formatSubmittedFull(selectedParticipant)}
                   />
 
                   <InfoItem
                     label="Last Updated"
-                    value={formatDate(selectedParticipant.updatedAt)}
+                    value={formatDateTime(selectedParticipant.updatedAt)}
                   />
                 </div>
               </section>

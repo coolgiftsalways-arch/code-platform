@@ -151,6 +151,8 @@ export default function Navbar() {
   const desktopNavClass = (path) => `
     relative
     py-2
+    whitespace-nowrap
+    text-sm
     transition-colors
     duration-300
     ${
@@ -170,6 +172,26 @@ export default function Navbar() {
     transition-all
     duration-300
     ${activePage === path ? "w-full opacity-100" : "w-0 opacity-0"}
+  `;
+
+  /* =====================================================
+     MOBILE NAV CLASS
+  ===================================================== */
+
+  const mobileNavClass = (path) => `
+    w-full
+    border-b
+    border-slate-100
+    py-3
+    text-left
+    font-medium
+    transition-colors
+    duration-200
+    ${
+      activePage === path
+        ? "text-indigo-600"
+        : "text-slate-700 hover:text-indigo-600"
+    }
   `;
 
   return (
@@ -244,16 +266,9 @@ export default function Navbar() {
 
         {/* =================================================
             DESKTOP NAVIGATION
-
-            Home
-            About
-            Categories
-            Gallery
-            Expo 2026
-            Hall of Fame
         ================================================= */}
 
-        <nav className="hidden items-center gap-8 font-medium md:flex">
+        <nav className="hidden items-center gap-5 font-medium lg:flex xl:gap-7">
           {/* HOME */}
 
           <button
@@ -302,6 +317,18 @@ export default function Navbar() {
           >
             Expo 2026
             <span className={activeLineClass("/upload")} />
+          </button>
+
+          {/* =================================================
+              SPONSORS
+          ================================================= */}
+
+          <button
+            onClick={() => handleNavClick("/sponsors")}
+            className={desktopNavClass("/sponsors")}
+          >
+            Sponsors
+            <span className={activeLineClass("/sponsors")} />
           </button>
 
           {/* HALL OF FAME */}
@@ -444,7 +471,7 @@ export default function Navbar() {
               text-slate-700
               transition-colors
               hover:bg-slate-100
-              md:hidden
+              lg:hidden
             "
             aria-label="Toggle Menu"
           >
@@ -482,7 +509,7 @@ export default function Navbar() {
       </div>
 
       {/* =====================================================
-          MOBILE MENU
+          MOBILE / TABLET MENU
       ===================================================== */}
 
       {isOpen && (
@@ -503,22 +530,14 @@ export default function Navbar() {
             py-5
             shadow-xl
             backdrop-blur-xl
-            md:hidden
+            lg:hidden
           "
         >
           {/* HOME */}
 
           <button
             onClick={() => handleNavClick("/")}
-            className={`
-              w-full
-              border-b
-              border-slate-100
-              py-3
-              text-left
-              font-medium
-              ${activePage === "/" ? "text-indigo-600" : "text-slate-700"}
-            `}
+            className={mobileNavClass("/")}
           >
             Home
           </button>
@@ -527,15 +546,7 @@ export default function Navbar() {
 
           <button
             onClick={() => handleNavClick("/about")}
-            className={`
-              w-full
-              border-b
-              border-slate-100
-              py-3
-              text-left
-              font-medium
-              ${activePage === "/about" ? "text-indigo-600" : "text-slate-700"}
-            `}
+            className={mobileNavClass("/about")}
           >
             About
           </button>
@@ -544,19 +555,7 @@ export default function Navbar() {
 
           <button
             onClick={() => handleNavClick("/categories")}
-            className={`
-              w-full
-              border-b
-              border-slate-100
-              py-3
-              text-left
-              font-medium
-              ${
-                activePage === "/categories"
-                  ? "text-indigo-600"
-                  : "text-slate-700"
-              }
-            `}
+            className={mobileNavClass("/categories")}
           >
             Categories
           </button>
@@ -565,19 +564,7 @@ export default function Navbar() {
 
           <button
             onClick={() => handleNavClick("/features")}
-            className={`
-              w-full
-              border-b
-              border-slate-100
-              py-3
-              text-left
-              font-medium
-              ${
-                activePage === "/features"
-                  ? "text-indigo-600"
-                  : "text-slate-700"
-              }
-            `}
+            className={mobileNavClass("/features")}
           >
             Gallery
           </button>
@@ -586,36 +573,27 @@ export default function Navbar() {
 
           <button
             onClick={() => handleNavClick("/upload")}
-            className={`
-              w-full
-              border-b
-              border-slate-100
-              py-3
-              text-left
-              font-medium
-              ${activePage === "/upload" ? "text-indigo-600" : "text-slate-700"}
-            `}
+            className={mobileNavClass("/upload")}
           >
             Expo 2026
+          </button>
+
+          {/* =================================================
+              SPONSORS
+          ================================================= */}
+
+          <button
+            onClick={() => handleNavClick("/sponsors")}
+            className={mobileNavClass("/sponsors")}
+          >
+            Sponsors
           </button>
 
           {/* HALL OF FAME */}
 
           <button
             onClick={() => handleNavClick("/hall-of-fame")}
-            className={`
-              w-full
-              border-b
-              border-slate-100
-              py-3
-              text-left
-              font-medium
-              ${
-                activePage === "/hall-of-fame"
-                  ? "text-indigo-600"
-                  : "text-slate-700"
-              }
-            `}
+            className={mobileNavClass("/hall-of-fame")}
           >
             Hall of Fame
           </button>

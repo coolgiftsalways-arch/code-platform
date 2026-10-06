@@ -7,7 +7,7 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
    LOCAL MEDIA
 ========================================================= */
 
-import one from "../Image/glone.MP4";
+import one from "../Image/Topone.MP4";
 import two from "../Image/gmtwo.mp4";
 import three from "../Image/gkten.MP4";
 import four from "../Image/markit.MP4";
