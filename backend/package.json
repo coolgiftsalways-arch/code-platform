@@ -1,10 +1,11 @@
 {
   "name": "backend",
   "version": "1.0.0",
-  "description": "DEVNEX Backend API",
+  "description": "DEVNEX Full Stack Application",
   "main": "server.js",
   "type": "module",
   "scripts": {
+    "build": "npm install --prefix ../frontend && npm run build --prefix ../frontend",
     "start": "node server.js",
     "dev": "node --watch server.js"
   },
@@ -15,5 +16,8 @@
     "express": "^5.2.1",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^9.9.3"
+  },
+  "engines": {
+    "node": "22.x"
   }
 }
