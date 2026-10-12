@@ -150,7 +150,7 @@ app.use("/api", (req, res) => {
    FRONTEND BUILD
 ========================================================= */
 
-const frontendDistPath = path.resolve(__dirname, "../frontend/dist");
+const frontendDistPath = path.resolve(__dirname, "dist");
 
 const frontendIndexPath = path.join(frontendDistPath, "index.html");
 
