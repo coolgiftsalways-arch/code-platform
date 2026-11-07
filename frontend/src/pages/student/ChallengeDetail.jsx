@@ -2,7 +2,16 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 
 import { api } from "../../lib/api.js";
-import { formatDate, formatInr, PHASE_LABEL, PHASE_STYLE, timeLeft } from "../../lib/format.js";
+import {
+  categoryLabel,
+  formatDate,
+  formatInr,
+  formatInrShort,
+  PHASE_LABEL,
+  PHASE_STYLE,
+  startsIn,
+  timeLeft,
+} from "../../lib/format.js";
 import { useAuth } from "../../context/auth.js";
 import { PageLoader } from "../../components/RequireAuth.jsx";
 import EntryFeePayment from "../../components/EntryFeePayment.jsx";
@@ -16,6 +25,8 @@ export default function ChallengeDetail() {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [registerError, setRegisterError] = useState("");
+  const [showCoupon, setShowCoupon] = useState(false);
+  const [coupon, setCoupon] = useState("");
 
   // { registrationId, amount, paymentUrl } while the payment screen is open
   const [payment, setPayment] = useState(null);
@@ -38,6 +49,7 @@ export default function ChallengeDetail() {
     try {
       const data = await api(`/api/challenges/${encodeURIComponent(slug)}/register`, {
         method: "POST",
+        body: coupon.trim() ? { couponCode: coupon.trim() } : {},
       });
 
       if (data.paymentStatus === "Pending") {
@@ -84,6 +96,12 @@ export default function ChallengeDetail() {
       >
         ✓ Registered — open my dashboard
       </Link>
+    );
+  } else if (challenge.phase === "upcoming") {
+    action = (
+      <p className="rounded-xl bg-orange-50 py-3.5 text-center text-sm font-bold text-orange-700">
+        Registration opens {formatDate(challenge.startAt, true)}
+      </p>
     );
   } else if (!isOpen) {
     action = (
@@ -151,10 +169,22 @@ export default function ChallengeDetail() {
           )}
           <div className="relative">
             <span className="rounded-full bg-white/90 px-3 py-1 text-[10px] font-black uppercase tracking-wider text-indigo-700">
-              {challenge.category}
+              {categoryLabel(challenge.category)}
             </span>
             <h1 className="mt-4 text-3xl font-black tracking-tight sm:text-5xl">{challenge.title}</h1>
             <p className="mt-3 max-w-2xl text-sm leading-6 text-indigo-50 sm:text-base">{challenge.tagline}</p>
+            <div className="mt-5 flex flex-wrap gap-2 text-xs font-bold">
+              <span className="rounded-full bg-white/15 px-3 py-1">Hosted by {challenge.host || "DEVNEX"}</span>
+              <span className="rounded-full bg-white/15 px-3 py-1">
+                Online
+              </span>
+              {challenge.prizePool > 0 && (
+                <span className="rounded-full bg-white/15 px-3 py-1">{formatInrShort(challenge.prizePool)} in prizes</span>
+              )}
+              {(challenge.tags || []).map((tag) => (
+                <span key={tag} className="rounded-full bg-white/15 px-3 py-1">{tag}</span>
+              ))}
+            </div>
           </div>
         </div>
 
@@ -169,6 +199,7 @@ export default function ChallengeDetail() {
 
             <Card title="Timeline">
               <ol className="space-y-4">
+                {challenge.startAt && <TimelineItem label="Registration opens" date={challenge.startAt} />}
                 <TimelineItem label="Registration closes" date={challenge.registrationDeadline} />
                 <TimelineItem label="Project submission deadline" date={challenge.submissionDeadline} />
                 {challenge.resultsAt && <TimelineItem label="Results announced" date={challenge.resultsAt} />}
@@ -214,15 +245,49 @@ export default function ChallengeDetail() {
 
               <dl className="mt-5 space-y-3 text-sm">
                 <Row label="Entry fee" value={feeLabel} />
+                {challenge.prizePool > 0 && <Row label="Prize pool" value={formatInr(challenge.prizePool)} />}
+                <Row label="Where" value="Online" />
                 <Row label="Students joined" value={challenge.participants} />
                 <Row
-                  label="Register by"
-                  value={isOpen ? timeLeft(challenge.registrationDeadline) : formatDate(challenge.registrationDeadline)}
+                  label={challenge.phase === "upcoming" ? "Opens" : "Register by"}
+                  value={
+                    challenge.phase === "upcoming"
+                      ? startsIn(challenge.startAt).replace("Starts ", "")
+                      : isOpen
+                        ? timeLeft(challenge.registrationDeadline)
+                        : formatDate(challenge.registrationDeadline)
+                  }
                 />
                 <Row label="Submit by" value={formatDate(challenge.submissionDeadline)} />
               </dl>
 
               <div className="mt-6">{action}</div>
+
+              {/* Test coupon: only shown to logged-in students who can pay */}
+              {user && isOpen && !joined && challenge.fee > 0 && (
+                <div className="mt-3 text-center">
+                  {showCoupon ? (
+                    <input
+                      value={coupon}
+                      onChange={(e) => {
+                        setCoupon(e.target.value);
+                        setRegisterError("");
+                      }}
+                      placeholder="Coupon code"
+                      aria-label="Coupon code"
+                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-center text-sm font-bold uppercase tracking-wider text-slate-800 outline-none focus:border-indigo-600 focus:bg-white"
+                    />
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setShowCoupon(true)}
+                      className="text-xs font-bold text-slate-500 hover:text-indigo-600"
+                    >
+                      Have a coupon code?
+                    </button>
+                  )}
+                </div>
+              )}
 
               {registerError && (
                 <p className="mt-3 text-center text-xs font-semibold text-rose-600" role="alert">

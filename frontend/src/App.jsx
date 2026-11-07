@@ -35,17 +35,17 @@ import RegistrationPage from "./pages/student/RegistrationPage.jsx";
 // ADMIN COMPONENTS
 // =========================================================
 
-import Dashboard from "./Admin/Dashboard.jsx";
-import Participants from "./Admin/Participants.jsx";
-import Submissions from "./Admin/Submissions.jsx";
-import Winners from "./Admin/Winners.jsx";
-import Qualification from "./Admin/Qualification.jsx";
-import Payments from "./Admin/Payments.jsx";
-import DefenseSchedule from "./Admin/DefenseSchedule.jsx";
-import Finalists from "./Admin/Finalists.jsx";
-import Notifications from "./Admin/Notifications.jsx";
-import Settings from "./Admin/Settings.jsx";
-import AdminLayout from "./Admin/AdminLayout.jsx";
+import AdminShell from "./adminPanel/AdminShell.jsx";
+import AdminLogin from "./adminPanel/AdminLogin.jsx";
+import AdminOverview from "./adminPanel/pages/Overview.jsx";
+import AdminChallenges from "./adminPanel/pages/ChallengesList.jsx";
+import AdminChallengeForm from "./adminPanel/pages/ChallengeForm.jsx";
+import AdminRegistrations from "./adminPanel/pages/Registrations.jsx";
+import AdminRegistrationDetail from "./adminPanel/pages/RegistrationDetail.jsx";
+import { StudentsList as AdminStudents, StudentDetail as AdminStudentDetail } from "./adminPanel/pages/Students.jsx";
+import AdminPayments from "./adminPanel/pages/Payments.jsx";
+import AdminAnnouncements from "./adminPanel/pages/Announcements.jsx";
+import AdminSettings from "./adminPanel/pages/Settings.jsx";
 
 // =========================================================
 // CSS
@@ -86,6 +86,15 @@ function SmoothScroll() {
   }, []);
 
   return null;
+}
+
+/* =========================================================
+   CUSTOM CURSOR (website only; the admin panel uses the normal cursor)
+========================================================= */
+
+function SiteCursor() {
+  const { pathname } = useLocation();
+  return pathname.startsWith("/admin") ? null : <CustomCursor />;
 }
 
 /* =========================================================
@@ -137,7 +146,7 @@ export default function App() {
           DEVNEX CUSTOM CURSOR
       ===================================================== */}
 
-      <CustomCursor />
+      <SiteCursor />
 
       {/* =====================================================
           LENIS SMOOTH SCROLL
@@ -312,118 +321,25 @@ export default function App() {
         />
 
         {/* =====================================================
-            ADMIN ROUTES
+            ADMIN PANEL (admins only, login at /admin/login)
         ===================================================== */}
 
-        {/* ================= DASHBOARD ================= */}
+        <Route path="/admin/login" element={<AdminLogin />} />
 
-        <Route
-          path="/admin/dashboard"
-          element={
-            <AdminLayout>
-              <Dashboard />
-            </AdminLayout>
-          }
-        />
-
-        {/* ================= PARTICIPANTS ================= */}
-
-        <Route
-          path="/admin/participants"
-          element={
-            <AdminLayout>
-              <Participants />
-            </AdminLayout>
-          }
-        />
-
-        {/* ================= SUBMISSIONS ================= */}
-
-        <Route
-          path="/admin/submissions"
-          element={
-            <AdminLayout>
-              <Submissions />
-            </AdminLayout>
-          }
-        />
-
-        {/* ================= WINNERS ================= */}
-
-        <Route
-          path="/admin/winners"
-          element={
-            <AdminLayout>
-              <Winners />
-            </AdminLayout>
-          }
-        />
-
-        {/* ================= QUALIFICATION ================= */}
-
-        <Route
-          path="/admin/qualification"
-          element={
-            <AdminLayout>
-              <Qualification />
-            </AdminLayout>
-          }
-        />
-
-        {/* ================= PAYMENTS ================= */}
-
-        <Route
-          path="/admin/payments"
-          element={
-            <AdminLayout>
-              <Payments />
-            </AdminLayout>
-          }
-        />
-
-        {/* ================= DEFENSE SCHEDULE ================= */}
-
-        <Route
-          path="/admin/defense"
-          element={
-            <AdminLayout>
-              <DefenseSchedule />
-            </AdminLayout>
-          }
-        />
-
-        {/* ================= FINALISTS ================= */}
-
-        <Route
-          path="/admin/finalists"
-          element={
-            <AdminLayout>
-              <Finalists />
-            </AdminLayout>
-          }
-        />
-
-        {/* ================= NOTIFICATIONS ================= */}
-
-        <Route
-          path="/admin/notifications"
-          element={
-            <AdminLayout>
-              <Notifications />
-            </AdminLayout>
-          }
-        />
-
-        {/* ================= SETTINGS ================= */}
-
-        <Route
-          path="/admin/settings"
-          element={
-            <AdminLayout>
-              <Settings />
-            </AdminLayout>
-          }
-        />
+        <Route path="/admin" element={<AdminShell />}>
+          <Route index element={<AdminOverview />} />
+          <Route path="challenges" element={<AdminChallenges />} />
+          <Route path="challenges/new" element={<AdminChallengeForm />} />
+          <Route path="challenges/:id" element={<AdminChallengeForm key="edit" />} />
+          <Route path="registrations" element={<AdminRegistrations />} />
+          <Route path="registrations/:id" element={<AdminRegistrationDetail />} />
+          <Route path="students" element={<AdminStudents />} />
+          <Route path="students/:id" element={<AdminStudentDetail />} />
+          <Route path="payments" element={<AdminPayments />} />
+          <Route path="announcements" element={<AdminAnnouncements />} />
+          <Route path="settings" element={<AdminSettings />} />
+          <Route path="*" element={<AdminOverview />} />
+        </Route>
       </Routes>
       </AuthProvider>
     </BrowserRouter>

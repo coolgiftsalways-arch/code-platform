@@ -1,9 +1,11 @@
 import Challenge, { challengePhase } from "../models/Challenge.js";
 import Registration from "../models/Registration.js";
 import {
+  cancelPaymentLink,
   createRegistrationPaymentLink,
   syncRegistrationPayment,
 } from "../utils/razorpay.js";
+import { isValidCoupon, priceFor } from "../utils/coupon.js";
 
 /* =========================================================
    HELPERS
@@ -18,7 +20,12 @@ export function serializeChallenge(challenge, extra = {}) {
     description: challenge.description,
     category: challenge.category,
     coverImage: challenge.coverImage,
+    host: challenge.host,
+    prizePool: challenge.prizePool,
+    tags: challenge.tags,
+    isFeatured: challenge.isFeatured,
     fee: challenge.fee,
+    startAt: challenge.startAt,
     registrationDeadline: challenge.registrationDeadline,
     submissionDeadline: challenge.submissionDeadline,
     resultsAt: challenge.resultsAt,
@@ -26,6 +33,7 @@ export function serializeChallenge(challenge, extra = {}) {
     rules: challenge.rules,
     eligibility: challenge.eligibility,
     phase: challengePhase(challenge),
+    createdAt: challenge.createdAt,
     ...extra,
   };
 }
@@ -159,12 +167,34 @@ export const registerForChallenge = async (req, res) => {
       });
     }
 
+    if (challengePhase(challenge) === "upcoming") {
+      return res.status(400).json({
+        success: false,
+        message: "Registration for this challenge hasn't opened yet.",
+      });
+    }
+
     if (challengePhase(challenge) !== "open") {
       return res.status(400).json({
         success: false,
         message: "Registration for this challenge has closed.",
       });
     }
+
+    // Optional test coupon (only works while TEST_COUPON_CODE is set).
+    const typedCoupon = String(req.body?.couponCode || "").trim();
+
+    if (typedCoupon && !isValidCoupon(typedCoupon)) {
+      return res.status(400).json({ success: false, message: "That coupon code isn't valid." });
+    }
+
+    // A coupon typed now wins; otherwise keep one used earlier (if still active).
+    const couponCode = typedCoupon
+      ? typedCoupon.toUpperCase()
+      : isValidCoupon(registration?.couponCode)
+        ? registration.couponCode
+        : "";
+    const amount = priceFor(challenge, couponCode);
 
     // Started earlier but didn't pay: reuse the link if it is still open.
     if (registration) {
@@ -188,7 +218,7 @@ export const registerForChallenge = async (req, res) => {
 
       const stillOpen =
         registration.paymentUrl &&
-        registration.amount === challenge.fee &&
+        registration.amount === amount &&
         linkStatus === "created";
 
       if (stillOpen) {
@@ -200,6 +230,10 @@ export const registerForChallenge = async (req, res) => {
           paymentUrl: registration.paymentUrl,
         });
       }
+
+      // The price changed (coupon added/removed): close the old link so the
+      // student can't pay both.
+      if (linkStatus === "created") await cancelPaymentLink(registration.razorpayPaymentLinkId);
     } else {
       registration = new Registration({
         user: req.user._id,
@@ -207,7 +241,8 @@ export const registerForChallenge = async (req, res) => {
       });
     }
 
-    registration.amount = challenge.fee;
+    registration.amount = amount;
+    registration.couponCode = amount < challenge.fee ? couponCode : "";
 
     // ----- Free challenge -----
     if (!challenge.fee) {

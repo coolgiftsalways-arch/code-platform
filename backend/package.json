@@ -8,7 +8,8 @@
     "build": "npm install --prefix ../frontend && npm run build --prefix ../frontend",
     "start": "node server.js",
     "dev": "node --watch server.js",
-    "seed:challenges": "node scripts/seedChallenges.js"
+    "seed:challenges": "node scripts/seedChallenges.js",
+    "make-admin": "node scripts/makeAdmin.js"
   },
   "dependencies": {
     "bcryptjs": "^3.0.2",

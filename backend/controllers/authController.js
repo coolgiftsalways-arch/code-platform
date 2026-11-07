@@ -23,6 +23,7 @@ export function publicUser(user) {
     institute: user.institute || "",
     city: user.city || "",
     className: user.className || "",
+    role: user.role || "student",
   };
 }
 

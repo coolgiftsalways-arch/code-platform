@@ -6,8 +6,13 @@ import {
   completeDefense,
   cancelDefense,
 } from "../controllers/defenseController.js";
+import { requireAdmin } from "../middleware/requireAuth.js";
 
 const router = express.Router();
+
+// Admin only (these used to be open to anyone).
+router.use(requireAdmin);
+
 
 router.get("/", getDefenseParticipants);
 

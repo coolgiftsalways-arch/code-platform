@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
 import { api } from "../../lib/api.js";
-import { formatDate, timeLeft } from "../../lib/format.js";
+import { categoryLabel, formatDate, timeLeft } from "../../lib/format.js";
 import { useAuth } from "../../context/auth.js";
 import { PageLoader } from "../../components/RequireAuth.jsx";
 import { STATUS_STYLE, STEPS, nextAction } from "./registrationStatus.js";
@@ -11,12 +11,17 @@ export default function Dashboard() {
   const { user, logout } = useAuth();
 
   const [registrations, setRegistrations] = useState(null);
+  const [announcements, setAnnouncements] = useState([]);
   const [error, setError] = useState("");
 
   useEffect(() => {
     api("/api/registrations/my")
       .then((data) => setRegistrations(data.registrations))
       .catch((err) => setError(err.message));
+
+    api("/api/announcements")
+      .then((data) => setAnnouncements(data.announcements))
+      .catch(() => {});
   }, []);
 
   return (
@@ -53,6 +58,22 @@ export default function Dashboard() {
             </button>
           </div>
         </div>
+
+        {/* ANNOUNCEMENTS FROM DEVNEX */}
+        {announcements.length > 0 && (
+          <div className="mt-8 space-y-3">
+            <h2 className="text-lg font-black text-slate-950">Announcements</h2>
+            {announcements.slice(0, 5).map((a) => (
+              <article key={a.id} className="rounded-[20px] border border-indigo-100 bg-indigo-50/60 p-5">
+                <p className="text-[10px] font-black uppercase tracking-wider text-indigo-600">
+                  {a.challenge ? a.challenge.title : "DEVNEX"} · {formatDate(a.createdAt)}
+                </p>
+                <h3 className="mt-1 font-black text-slate-950">{a.title}</h3>
+                <p className="mt-1 whitespace-pre-line text-sm leading-6 text-slate-700">{a.body}</p>
+              </article>
+            ))}
+          </div>
+        )}
 
         {/* MY CHALLENGES */}
         <h2 className="mt-10 text-lg font-black text-slate-950">My challenges</h2>
@@ -103,7 +124,7 @@ function RegistrationCard({ registration }) {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">
-            {challenge.category} · {registration.number}
+            {categoryLabel(challenge.category)} · {registration.number}
           </p>
           <h3 className="mt-1 text-lg font-black text-slate-950">{challenge.title}</h3>
           <p className="mt-1 text-sm text-slate-500">{nextAction(registration)}</p>

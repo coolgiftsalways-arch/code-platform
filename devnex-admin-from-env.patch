@@ -1,0 +1,112 @@
+From 59442a0ca79b6dc39347ec77e9eefeb9c9717277 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Sat, 7 Nov 2026 08:57:11 +0000
+Subject: [PATCH] Create the admin account from ADMIN_EMAIL / ADMIN_PASSWORD on
+ server start
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01HALAYyVpNY57AKHbq6Q3Lj
+---
+ backend/server.js            | 11 +++++++
+ backend/utils/ensureAdmin.js | 60 ++++++++++++++++++++++++++++++++++++
+ 2 files changed, 71 insertions(+)
+ create mode 100644 backend/utils/ensureAdmin.js
+
+diff --git a/backend/server.js b/backend/server.js
+index 5f5cf9b..22022f5 100644
+--- a/backend/server.js
++++ b/backend/server.js
+@@ -11,6 +11,7 @@ import { fileURLToPath } from "node:url";
+ import fs from "node:fs";
+ 
+ import connectDB from "./config/db.js";
++import ensureAdmin from "./utils/ensureAdmin.js";
+ 
+ import authRoutes from "./routes/authRoutes.js";
+ import participantRoutes from "./routes/participantRoutes.js";
+@@ -295,6 +296,16 @@ const startServer = async () => {
+ 
+     await connectDB();
+ 
++    /* =====================================================
++       ADMIN ACCOUNT FROM ADMIN_EMAIL / ADMIN_PASSWORD
++    ===================================================== */
++
++    try {
++      await ensureAdmin();
++    } catch (error) {
++      console.error("❌ Admin account setup failed:", error.message);
++    }
++
+     /* =====================================================
+        START SERVER
+     ===================================================== */
+diff --git a/backend/utils/ensureAdmin.js b/backend/utils/ensureAdmin.js
+new file mode 100644
+index 0000000..099cba2
+--- /dev/null
++++ b/backend/utils/ensureAdmin.js
+@@ -0,0 +1,60 @@
++import bcrypt from "bcryptjs";
++
++import User from "../models/User.js";
++
++// Creates / updates the admin account from environment variables, every time
++// the server starts. No signup needed.
++//
++//   ADMIN_EMAIL=admin@devnex.institute
++//   ADMIN_PASSWORD=a-long-secret-password
++//
++// - No account with that email yet -> it is created as an admin.
++// - Account exists -> it is made an admin, and its password is set to
++//   ADMIN_PASSWORD if you changed it.
++// Leave both unset to skip this.
++export default async function ensureAdmin() {
++  const email = String(process.env.ADMIN_EMAIL || "").trim().toLowerCase();
++  const password = String(process.env.ADMIN_PASSWORD || "");
++
++  if (!email && !password) return;
++
++  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
++    console.warn("⚠️ ADMIN_EMAIL is not a valid email. Admin account not set up.");
++    return;
++  }
++
++  if (password.length < 8) {
++    console.warn("⚠️ ADMIN_PASSWORD must be at least 8 characters. Admin account not set up.");
++    return;
++  }
++
++  const user = await User.findOne({ email });
++
++  if (!user) {
++    await User.create({
++      firstName: "DEVNEX",
++      lastName: "Admin",
++      email,
++      phone: "0000000000",
++      password: await bcrypt.hash(password, 12),
++      role: "admin",
++    });
++    console.log(`👑 Admin account created: ${email}`);
++    return;
++  }
++
++  const changes = {};
++  if (user.role !== "admin") changes.role = "admin";
++  if (!(await bcrypt.compare(password, user.password))) {
++    changes.password = await bcrypt.hash(password, 12);
++  }
++
++  if (Object.keys(changes).length) {
++    await User.updateOne({ _id: user._id }, { $set: changes });
++    console.log(
++      `👑 Admin account updated: ${email}${changes.password ? " (password changed)" : ""}`,
++    );
++  } else {
++    console.log(`👑 Admin account ready: ${email}`);
++  }
++}
+-- 
+2.43.0
+

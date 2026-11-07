@@ -7,8 +7,13 @@ import {
   updateParticipantStatus,
   deleteParticipant,
 } from "../controllers/ParticipantController.js";
+import { requireAdmin } from "../middleware/requireAuth.js";
 
 const router = express.Router();
+
+// Admin only (these used to be open to anyone).
+router.use(requireAdmin);
+
 
 /* =========================================================
    CREATE

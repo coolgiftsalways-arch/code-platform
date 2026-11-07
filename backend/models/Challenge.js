@@ -32,8 +32,23 @@ const challengeSchema = new mongoose.Schema(
 
     coverImage: { type: String, trim: true, default: "" },
 
+    // Who runs it (shown on the card), e.g. "DEVNEX" or a sponsor name.
+    host: { type: String, trim: true, default: "DEVNEX" },
+
+    // Total prize money in rupees (used for "Prize amount" sorting).
+    prizePool: { type: Number, min: 0, default: 0 },
+
+    // Interest tags shown on the card and used in filters.
+    tags: { type: [String], default: [] },
+
+    // Featured challenges are shown first.
+    isFeatured: { type: Boolean, default: false },
+
     // Entry fee in rupees. 0 = free.
     fee: { type: Number, min: 0, default: 999 },
+
+    // When registration opens. Before this the challenge shows as "Upcoming".
+    startAt: { type: Date, default: null },
 
     registrationDeadline: { type: Date, required: true },
     submissionDeadline: { type: Date, required: true },
@@ -49,8 +64,9 @@ const challengeSchema = new mongoose.Schema(
   { timestamps: true },
 );
 
-// open | submissions | judging | ended
+// upcoming | open | submissions | judging | ended
 export function challengePhase(challenge, now = new Date()) {
+  if (challenge.startAt && now < challenge.startAt) return "upcoming";
   if (now <= challenge.registrationDeadline) return "open";
   if (now <= challenge.submissionDeadline) return "submissions";
   if (!challenge.resultsAt || now < challenge.resultsAt) return "judging";

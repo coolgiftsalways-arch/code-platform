@@ -50,6 +50,10 @@ const registrationSchema = new mongoose.Schema(
     paymentLinkExpiresAt: { type: Date, default: null },
     razorpayPaymentId: { type: String, default: null },
     paidAt: { type: Date, default: null },
+    // Set when an admin marks a payment as received outside Razorpay.
+    manualPaymentNote: { type: String, trim: true, default: "" },
+    // Test coupon used for this registration (see utils/coupon.js).
+    couponCode: { type: String, trim: true, default: "" },
 
     // ----- project -----
     submission: { type: submissionSchema, default: () => ({}) },

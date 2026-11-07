@@ -1,0 +1,365 @@
+From d6d28a9a46ef8812f7a2b4e47c105e4cde36ff3e Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Sat, 7 Nov 2026 09:06:02 +0000
+Subject: [PATCH] =?UTF-8?q?Test=20coupon:=20TEST=5FCOUPON=5FCODE=20makes?=
+ =?UTF-8?q?=20any=20paid=20registration=20cost=20=E2=82=B91?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01HALAYyVpNY57AKHbq6Q3Lj
+---
+ backend/controllers/adminController.js        |  3 ++
+ backend/controllers/challengeController.js    | 26 +++++++++++++++--
+ backend/controllers/registrationController.js |  4 ++-
+ backend/models/Registration.js                |  2 ++
+ backend/utils/coupon.js                       | 23 +++++++++++++++
+ backend/utils/razorpay.js                     | 15 +++++++++-
+ frontend/src/adminPanel/csv.js                |  1 +
+ frontend/src/adminPanel/pages/Overview.jsx    |  7 +++++
+ frontend/src/adminPanel/pages/Payments.jsx    |  1 +
+ .../adminPanel/pages/RegistrationDetail.jsx   |  1 +
+ .../src/adminPanel/pages/Registrations.jsx    |  1 +
+ frontend/src/adminPanel/pages/Settings.jsx    |  6 ++++
+ .../src/pages/student/ChallengeDetail.jsx     | 29 +++++++++++++++++++
+ 13 files changed, 115 insertions(+), 4 deletions(-)
+ create mode 100644 backend/utils/coupon.js
+
+diff --git a/backend/controllers/adminController.js b/backend/controllers/adminController.js
+index 9d0853f..7d00e16 100644
+--- a/backend/controllers/adminController.js
++++ b/backend/controllers/adminController.js
+@@ -5,6 +5,7 @@ import Challenge, { challengePhase } from "../models/Challenge.js";
+ import Registration, { REGISTRATION_STATUSES } from "../models/Registration.js";
+ import User from "../models/User.js";
+ import { shortId } from "../utils/razorpay.js";
++import { testCouponCode } from "../utils/coupon.js";
+ 
+ /* =========================================================
+    HELPERS
+@@ -53,6 +54,7 @@ function adminRegistration(registration) {
+     razorpayPaymentId: registration.razorpayPaymentId,
+     razorpayPaymentLinkId: registration.razorpayPaymentLinkId,
+     manualPaymentNote: registration.manualPaymentNote,
++    couponCode: registration.couponCode || "",
+     paidAt: registration.paidAt,
+     submission: registration.submission || {},
+     defenseSlot: registration.defenseSlot,
+@@ -156,6 +158,7 @@ export const getStats = async (_req, res) => {
+         razorpay: Boolean(process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET),
+         razorpayMode: String(process.env.RAZORPAY_KEY_ID || "").startsWith("rzp_live_") ? "live" : "test",
+         publicUrl: process.env.PUBLIC_URL || "",
++        testCoupon: testCouponCode(),
+       },
+     });
+   } catch (error) {
+diff --git a/backend/controllers/challengeController.js b/backend/controllers/challengeController.js
+index d68a8e9..6381e5c 100644
+--- a/backend/controllers/challengeController.js
++++ b/backend/controllers/challengeController.js
+@@ -1,9 +1,11 @@
+ import Challenge, { challengePhase } from "../models/Challenge.js";
+ import Registration from "../models/Registration.js";
+ import {
++  cancelPaymentLink,
+   createRegistrationPaymentLink,
+   syncRegistrationPayment,
+ } from "../utils/razorpay.js";
++import { isValidCoupon, priceFor } from "../utils/coupon.js";
+ 
+ /* =========================================================
+    HELPERS
+@@ -179,6 +181,21 @@ export const registerForChallenge = async (req, res) => {
+       });
+     }
+ 
++    // Optional test coupon (only works while TEST_COUPON_CODE is set).
++    const typedCoupon = String(req.body?.couponCode || "").trim();
++
++    if (typedCoupon && !isValidCoupon(typedCoupon)) {
++      return res.status(400).json({ success: false, message: "That coupon code isn't valid." });
++    }
++
++    // A coupon typed now wins; otherwise keep one used earlier (if still active).
++    const couponCode = typedCoupon
++      ? typedCoupon.toUpperCase()
++      : isValidCoupon(registration?.couponCode)
++        ? registration.couponCode
++        : "";
++    const amount = priceFor(challenge, couponCode);
++
+     // Started earlier but didn't pay: reuse the link if it is still open.
+     if (registration) {
+       let linkStatus = null;
+@@ -201,7 +218,7 @@ export const registerForChallenge = async (req, res) => {
+ 
+       const stillOpen =
+         registration.paymentUrl &&
+-        registration.amount === challenge.fee &&
++        registration.amount === amount &&
+         linkStatus === "created";
+ 
+       if (stillOpen) {
+@@ -213,6 +230,10 @@ export const registerForChallenge = async (req, res) => {
+           paymentUrl: registration.paymentUrl,
+         });
+       }
++
++      // The price changed (coupon added/removed): close the old link so the
++      // student can't pay both.
++      if (linkStatus === "created") await cancelPaymentLink(registration.razorpayPaymentLinkId);
+     } else {
+       registration = new Registration({
+         user: req.user._id,
+@@ -220,7 +241,8 @@ export const registerForChallenge = async (req, res) => {
+       });
+     }
+ 
+-    registration.amount = challenge.fee;
++    registration.amount = amount;
++    registration.couponCode = amount < challenge.fee ? couponCode : "";
+ 
+     // ----- Free challenge -----
+     if (!challenge.fee) {
+diff --git a/backend/controllers/registrationController.js b/backend/controllers/registrationController.js
+index 1221cca..5803e89 100644
+--- a/backend/controllers/registrationController.js
++++ b/backend/controllers/registrationController.js
+@@ -8,6 +8,7 @@ import {
+   shortId,
+   syncRegistrationPayment,
+ } from "../utils/razorpay.js";
++import { priceFor } from "../utils/coupon.js";
+ 
+ /* =========================================================
+    HELPERS
+@@ -173,7 +174,8 @@ export const renewPaymentLink = async (req, res) => {
+       });
+     }
+ 
+-    registration.amount = challenge.fee;
++    registration.amount = priceFor(challenge, registration.couponCode);
++    if (registration.amount === challenge.fee) registration.couponCode = "";
+     await createRegistrationPaymentLink(registration, { user: req.user, challenge }, req);
+     await registration.save();
+ 
+diff --git a/backend/models/Registration.js b/backend/models/Registration.js
+index 81e0efc..23711d4 100644
+--- a/backend/models/Registration.js
++++ b/backend/models/Registration.js
+@@ -52,6 +52,8 @@ const registrationSchema = new mongoose.Schema(
+     paidAt: { type: Date, default: null },
+     // Set when an admin marks a payment as received outside Razorpay.
+     manualPaymentNote: { type: String, trim: true, default: "" },
++    // Test coupon used for this registration (see utils/coupon.js).
++    couponCode: { type: String, trim: true, default: "" },
+ 
+     // ----- project -----
+     submission: { type: submissionSchema, default: () => ({}) },
+diff --git a/backend/utils/coupon.js b/backend/utils/coupon.js
+new file mode 100644
+index 0000000..028ce7e
+--- /dev/null
++++ b/backend/utils/coupon.js
+@@ -0,0 +1,23 @@
++// Test coupon: makes any paid registration cost ₹1 (Razorpay's minimum),
++// so you can try real payments cheaply.
++//
++// It only works while TEST_COUPON_CODE is set, e.g. in backend/.env:
++//   TEST_COUPON_CODE=DEVTEST1
++// Remove it (and restart) before going live.
++
++export const TEST_COUPON_AMOUNT = 1; // rupees
++
++export function testCouponCode() {
++  return String(process.env.TEST_COUPON_CODE || "").trim().toUpperCase();
++}
++
++export function isValidCoupon(code) {
++  const active = testCouponCode();
++  return Boolean(active) && String(code || "").trim().toUpperCase() === active;
++}
++
++// What this registration should cost, in rupees.
++export function priceFor(challenge, couponCode) {
++  if (!challenge.fee) return 0;
++  return isValidCoupon(couponCode) ? Math.min(TEST_COUPON_AMOUNT, challenge.fee) : challenge.fee;
++}
+diff --git a/backend/utils/razorpay.js b/backend/utils/razorpay.js
+index 847078b..63ee65d 100644
+--- a/backend/utils/razorpay.js
++++ b/backend/utils/razorpay.js
+@@ -93,7 +93,9 @@ async function attachPaymentLink(doc, req, { amountRupees, description, customer
+ export function createRegistrationPaymentLink(registration, { user, challenge }, req) {
+   return attachPaymentLink(registration, req, {
+     amountRupees: registration.amount,
+-    description: `DEVNEX — ${challenge.title} registration`,
++    description: `DEVNEX — ${challenge.title} registration${
++      registration.couponCode ? ` (test coupon ${registration.couponCode})` : ""
++    }`,
+     customer: {
+       name: `${user.firstName || ""} ${user.lastName || ""}`.trim(),
+       email: user.email,
+@@ -104,10 +106,21 @@ export function createRegistrationPaymentLink(registration, { user, challenge },
+       registrationId: String(registration._id),
+       registrationNumber: shortId(registration._id),
+       challenge: challenge.slug,
++      ...(registration.couponCode ? { coupon: registration.couponCode } : {}),
+     },
+   });
+ }
+ 
++// Close a payment link so it can't be paid any more (best effort).
++export async function cancelPaymentLink(linkId) {
++  if (!linkId) return;
++  try {
++    await getRazorpay().paymentLink.cancel(linkId);
++  } catch (error) {
++    console.warn("Couldn't cancel old payment link:", error.error?.description || error.message);
++  }
++}
++
+ export function markRegistrationPaid(registrationId, paymentId) {
+   return Registration.findOneAndUpdate(
+     { _id: registrationId, paymentStatus: "Pending" },
+diff --git a/frontend/src/adminPanel/csv.js b/frontend/src/adminPanel/csv.js
+index 55c989b..c7fdd47 100644
+--- a/frontend/src/adminPanel/csv.js
++++ b/frontend/src/adminPanel/csv.js
+@@ -38,6 +38,7 @@ export const REGISTRATION_CSV = [
+   { label: "Amount", value: (r) => r.amount },
+   { label: "Paid at", value: (r) => (r.paidAt ? new Date(r.paidAt).toISOString() : "") },
+   { label: "Razorpay payment", value: (r) => r.razorpayPaymentId },
++  { label: "Coupon", value: (r) => r.couponCode },
+   { label: "Project", value: (r) => r.submission?.projectTitle },
+   { label: "GitHub", value: (r) => r.submission?.githubUrl },
+   { label: "Live demo", value: (r) => r.submission?.liveDemoUrl },
+diff --git a/frontend/src/adminPanel/pages/Overview.jsx b/frontend/src/adminPanel/pages/Overview.jsx
+index 7bf50f9..36ed097 100644
+--- a/frontend/src/adminPanel/pages/Overview.jsx
++++ b/frontend/src/adminPanel/pages/Overview.jsx
+@@ -33,6 +33,13 @@ export default function Overview() {
+         }
+       />
+ 
++      {config.testCoupon && (
++        <p className="mb-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800">
++          Test coupon <strong>{config.testCoupon}</strong> is ON: anyone who knows it pays ₹1. Remove
++          TEST_COUPON_CODE from the server's environment variables before going live.
++        </p>
++      )}
++
+       {!config.razorpay && (
+         <p className="mb-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800">
+           Razorpay keys are not set on the server, so students can't pay yet. Add RAZORPAY_KEY_ID and
+diff --git a/frontend/src/adminPanel/pages/Payments.jsx b/frontend/src/adminPanel/pages/Payments.jsx
+index 3d80862..1283758 100644
+--- a/frontend/src/adminPanel/pages/Payments.jsx
++++ b/frontend/src/adminPanel/pages/Payments.jsx
+@@ -116,6 +116,7 @@ export default function Payments() {
+                   <td className={td}>
+                     <span className="break-all font-mono text-xs text-slate-600">{r.razorpayPaymentId}</span>
+                     {r.manualPaymentNote && <p className="text-xs text-amber-700">Manual: {r.manualPaymentNote}</p>}
++                    {r.couponCode && <p className="text-xs font-bold text-amber-700">Test coupon {r.couponCode}</p>}
+                   </td>
+                 </tr>
+               ))}
+diff --git a/frontend/src/adminPanel/pages/RegistrationDetail.jsx b/frontend/src/adminPanel/pages/RegistrationDetail.jsx
+index f322554..29d97f2 100644
+--- a/frontend/src/adminPanel/pages/RegistrationDetail.jsx
++++ b/frontend/src/adminPanel/pages/RegistrationDetail.jsx
+@@ -196,6 +196,7 @@ export default function RegistrationDetail() {
+               {registration.paidAt && <Row label="Paid on" value={formatDate(registration.paidAt, true)} />}
+               {registration.razorpayPaymentId && <Row label="Razorpay ID" value={<span className="break-all font-mono text-xs">{registration.razorpayPaymentId}</span>} />}
+               {registration.manualPaymentNote && <Row label="Note" value={registration.manualPaymentNote} />}
++              {registration.couponCode && <Row label="Coupon" value={<span className="rounded bg-amber-100 px-1.5 py-0.5 text-xs font-bold text-amber-800">{registration.couponCode}</span>} />}
+             </dl>
+ 
+             {unpaid && (
+diff --git a/frontend/src/adminPanel/pages/Registrations.jsx b/frontend/src/adminPanel/pages/Registrations.jsx
+index c05066e..06e29e2 100644
+--- a/frontend/src/adminPanel/pages/Registrations.jsx
++++ b/frontend/src/adminPanel/pages/Registrations.jsx
+@@ -222,6 +222,7 @@ export default function Registrations() {
+                   <td className={td}>
+                     <PaymentBadge status={r.paymentStatus} />
+                     {r.paymentStatus === "Paid" && <p className="mt-1 text-xs text-slate-500">{formatInr(r.amount)}</p>}
++                    {r.couponCode && <p className="mt-1 text-[11px] font-bold text-amber-700">Coupon {r.couponCode}</p>}
+                   </td>
+                   <td className={td}>
+                     <StatusBadge status={r.status} />
+diff --git a/frontend/src/adminPanel/pages/Settings.jsx b/frontend/src/adminPanel/pages/Settings.jsx
+index 59ea111..081fd2a 100644
+--- a/frontend/src/adminPanel/pages/Settings.jsx
++++ b/frontend/src/adminPanel/pages/Settings.jsx
+@@ -113,6 +113,12 @@ export default function Settings() {
+                 value={config.razorpay ? `Connected (${config.razorpayMode} mode)` : "Not set up"}
+                 help="Set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET in your hosting environment variables."
+               />
++              <SetupRow
++                ok={!config.testCoupon}
++                label="Test coupon (TEST_COUPON_CODE)"
++                value={config.testCoupon ? `ON: ${config.testCoupon} makes any payment ₹1` : "Off"}
++                help="Remove TEST_COUPON_CODE from the environment variables and restart before going live."
++              />
+               <SetupRow
+                 ok={Boolean(config.publicUrl)}
+                 label="Website address (PUBLIC_URL)"
+diff --git a/frontend/src/pages/student/ChallengeDetail.jsx b/frontend/src/pages/student/ChallengeDetail.jsx
+index f2b9005..ec2fdc7 100644
+--- a/frontend/src/pages/student/ChallengeDetail.jsx
++++ b/frontend/src/pages/student/ChallengeDetail.jsx
+@@ -25,6 +25,8 @@ export default function ChallengeDetail() {
+   const [error, setError] = useState("");
+   const [busy, setBusy] = useState(false);
+   const [registerError, setRegisterError] = useState("");
++  const [showCoupon, setShowCoupon] = useState(false);
++  const [coupon, setCoupon] = useState("");
+ 
+   // { registrationId, amount, paymentUrl } while the payment screen is open
+   const [payment, setPayment] = useState(null);
+@@ -47,6 +49,7 @@ export default function ChallengeDetail() {
+     try {
+       const data = await api(`/api/challenges/${encodeURIComponent(slug)}/register`, {
+         method: "POST",
++        body: coupon.trim() ? { couponCode: coupon.trim() } : {},
+       });
+ 
+       if (data.paymentStatus === "Pending") {
+@@ -260,6 +263,32 @@ export default function ChallengeDetail() {
+ 
+               <div className="mt-6">{action}</div>
+ 
++              {/* Test coupon: only shown to logged-in students who can pay */}
++              {user && isOpen && !joined && challenge.fee > 0 && (
++                <div className="mt-3 text-center">
++                  {showCoupon ? (
++                    <input
++                      value={coupon}
++                      onChange={(e) => {
++                        setCoupon(e.target.value);
++                        setRegisterError("");
++                      }}
++                      placeholder="Coupon code"
++                      aria-label="Coupon code"
++                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-center text-sm font-bold uppercase tracking-wider text-slate-800 outline-none focus:border-indigo-600 focus:bg-white"
++                    />
++                  ) : (
++                    <button
++                      type="button"
++                      onClick={() => setShowCoupon(true)}
++                      className="text-xs font-bold text-slate-500 hover:text-indigo-600"
++                    >
++                      Have a coupon code?
++                    </button>
++                  )}
++                </div>
++              )}
++
+               {registerError && (
+                 <p className="mt-3 text-center text-xs font-semibold text-rose-600" role="alert">
+                   {registerError}
+-- 
+2.43.0
+

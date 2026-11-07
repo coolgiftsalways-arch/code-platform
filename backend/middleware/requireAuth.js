@@ -31,6 +31,22 @@ export async function requireAuth(req, res, next) {
   return next();
 }
 
+// Must be logged in AND an admin.
+export async function requireAdmin(req, res, next) {
+  const user = await loadUser(req);
+
+  if (!user) {
+    return res.status(401).json({ success: false, message: "Please log in to continue." });
+  }
+
+  if (user.role !== "admin") {
+    return res.status(403).json({ success: false, message: "Admins only." });
+  }
+
+  req.user = user;
+  return next();
+}
+
 // Sets req.user when a valid token is sent, but never blocks.
 export async function optionalAuth(req, _res, next) {
   req.user = await loadUser(req);

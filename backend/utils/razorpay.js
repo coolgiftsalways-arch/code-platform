@@ -93,7 +93,9 @@ async function attachPaymentLink(doc, req, { amountRupees, description, customer
 export function createRegistrationPaymentLink(registration, { user, challenge }, req) {
   return attachPaymentLink(registration, req, {
     amountRupees: registration.amount,
-    description: `DEVNEX — ${challenge.title} registration`,
+    description: `DEVNEX — ${challenge.title} registration${
+      registration.couponCode ? ` (test coupon ${registration.couponCode})` : ""
+    }`,
     customer: {
       name: `${user.firstName || ""} ${user.lastName || ""}`.trim(),
       email: user.email,
@@ -104,8 +106,19 @@ export function createRegistrationPaymentLink(registration, { user, challenge },
       registrationId: String(registration._id),
       registrationNumber: shortId(registration._id),
       challenge: challenge.slug,
+      ...(registration.couponCode ? { coupon: registration.couponCode } : {}),
     },
   });
+}
+
+// Close a payment link so it can't be paid any more (best effort).
+export async function cancelPaymentLink(linkId) {
+  if (!linkId) return;
+  try {
+    await getRazorpay().paymentLink.cancel(linkId);
+  } catch (error) {
+    console.warn("Couldn't cancel old payment link:", error.error?.description || error.message);
+  }
 }
 
 export function markRegistrationPaid(registrationId, paymentId) {
@@ -117,7 +130,7 @@ export function markRegistrationPaid(registrationId, paymentId) {
       razorpayPaymentId: paymentId,
       paidAt: new Date(),
     },
-    { new: true },
+    { returnDocument: "after" },
   );
 }
 
@@ -160,7 +173,7 @@ export function markPaid(participantId, paymentId) {
   return Participant.findOneAndUpdate(
     { _id: participantId, paymentStatus: "Pending" },
     { paymentStatus: "Paid", razorpayPaymentId: paymentId, paidAt: new Date() },
-    { new: true },
+    { returnDocument: "after" },
   );
 }
 

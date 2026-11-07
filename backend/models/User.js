@@ -62,6 +62,13 @@ const userSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+
+    // "admin" can open the admin panel. Make one with: npm run make-admin -- you@email.com
+    role: {
+      type: String,
+      enum: ["student", "admin"],
+      default: "student",
+    },
   },
   {
     timestamps: true,

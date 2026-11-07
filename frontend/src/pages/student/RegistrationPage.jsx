@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 
 import { api } from "../../lib/api.js";
-import { formatDate, formatInr, timeLeft } from "../../lib/format.js";
+import { categoryLabel, formatDate, formatInr, timeLeft } from "../../lib/format.js";
 import { PageLoader } from "../../components/RequireAuth.jsx";
 import EntryFeePayment from "../../components/EntryFeePayment.jsx";
 import { STATUS_STYLE, STEPS } from "./registrationStatus.js";
@@ -102,7 +102,7 @@ export default function RegistrationPage() {
         <div className="mt-4 flex flex-wrap items-start justify-between gap-4">
           <div>
             <p className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-600">
-              {challenge.category} · {registration.number}
+              {categoryLabel(challenge.category)} · {registration.number}
             </p>
             <h1 className="mt-1 text-3xl font-black tracking-tight text-slate-950">{challenge.title}</h1>
             <Link

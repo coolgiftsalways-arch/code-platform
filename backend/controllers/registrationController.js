@@ -8,6 +8,7 @@ import {
   shortId,
   syncRegistrationPayment,
 } from "../utils/razorpay.js";
+import { priceFor } from "../utils/coupon.js";
 
 /* =========================================================
    HELPERS
@@ -173,7 +174,8 @@ export const renewPaymentLink = async (req, res) => {
       });
     }
 
-    registration.amount = challenge.fee;
+    registration.amount = priceFor(challenge, registration.couponCode);
+    if (registration.amount === challenge.fee) registration.couponCode = "";
     await createRegistrationPaymentLink(registration, { user: req.user, challenge }, req);
     await registration.save();
 

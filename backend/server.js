@@ -11,6 +11,7 @@ import { fileURLToPath } from "node:url";
 import fs from "node:fs";
 
 import connectDB from "./config/db.js";
+import ensureAdmin from "./utils/ensureAdmin.js";
 
 import authRoutes from "./routes/authRoutes.js";
 import participantRoutes from "./routes/participantRoutes.js";
@@ -20,6 +21,8 @@ import projectRoutes from "./routes/projectRoutes.js";
 import paymentRoutes from "./routes/paymentRoutes.js";
 import challengeRoutes from "./routes/challengeRoutes.js";
 import registrationRoutes from "./routes/registrationRoutes.js";
+import adminRoutes from "./routes/adminRoutes.js";
+import announcementRoutes from "./routes/announcementRoutes.js";
 
 /* =========================================================
    APP
@@ -148,6 +151,14 @@ app.use("/api/projects", projectRoutes);
 app.use("/api/challenges", challengeRoutes);
 
 app.use("/api/registrations", registrationRoutes);
+
+app.use("/api/announcements", announcementRoutes);
+
+/* =========================================================
+   ADMIN PANEL API (admin login required)
+========================================================= */
+
+app.use("/api/admin", adminRoutes);
 
 /* =========================================================
    PAYMENTS (Razorpay entry fee)
@@ -284,6 +295,16 @@ const startServer = async () => {
     ===================================================== */
 
     await connectDB();
+
+    /* =====================================================
+       ADMIN ACCOUNT FROM ADMIN_EMAIL / ADMIN_PASSWORD
+    ===================================================== */
+
+    try {
+      await ensureAdmin();
+    } catch (error) {
+      console.error("❌ Admin account setup failed:", error.message);
+    }
 
     /* =====================================================
        START SERVER
