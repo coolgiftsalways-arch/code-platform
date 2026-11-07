@@ -12,6 +12,7 @@ export default function Settings() {
   const [admins, setAdmins] = useState(null);
   const [config, setConfig] = useState(null);
   const [email, setEmail] = useState("");
+  const [testing, setTesting] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
 
@@ -113,6 +114,34 @@ export default function Settings() {
                 value={config.razorpay ? `Connected (${config.razorpayMode} mode)` : "Not set up"}
                 help="Set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET in your hosting environment variables."
               />
+              <SetupRow
+                ok={config.email}
+                label="Emails (SMTP_USER / SMTP_PASS)"
+                value={config.email ? `Sending from ${config.emailFrom}` : "Not set up — no emails are sent"}
+                help="Set SMTP_USER=admin@devnex.institute and SMTP_PASS=<mailbox password> in the environment variables, then restart."
+              />
+              {config.email && (
+                <button
+                  type="button"
+                  disabled={testing}
+                  className={btn.secondary}
+                  onClick={async () => {
+                    setTesting(true);
+                    setError("");
+                    setNotice("");
+                    try {
+                      const r = await api("/api/admin/test-email", { method: "POST", body: {} });
+                      setNotice(r.message);
+                    } catch (err) {
+                      setError(err.message);
+                    } finally {
+                      setTesting(false);
+                    }
+                  }}
+                >
+                  {testing ? "Sending…" : `Send a test email to ${user.email}`}
+                </button>
+              )}
               <SetupRow
                 ok={!config.testCoupon}
                 label="Test coupon (TEST_COUPON_CODE)"

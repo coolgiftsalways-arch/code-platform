@@ -9,6 +9,8 @@ import {
   syncRegistrationPayment,
 } from "../utils/razorpay.js";
 import { priceFor } from "../utils/coupon.js";
+import { notifySubmissionReceived } from "../utils/notify.js";
+import { certificateFor } from "./showcaseController.js";
 
 /* =========================================================
    HELPERS
@@ -25,12 +27,15 @@ function serializeRegistration(registration) {
     amount: registration.amount,
     paymentUrl: registration.paymentStatus === "Pending" ? registration.paymentUrl : null,
     paidAt: registration.paidAt,
+    razorpayPaymentId: registration.razorpayPaymentId,
     submission: registration.submission || {},
     defenseSlot: registration.defenseSlot,
     winnerRank: registration.winnerRank,
     adminNote: registration.adminNote,
     createdAt: registration.createdAt,
     challenge: challenge?.slug ? serializeChallenge(challenge) : null,
+    certificate: challenge?.slug ? certificateFor(registration, challenge) : null,
+    couponCode: registration.couponCode || "",
     canSubmit:
       ["Paid", "Free"].includes(registration.paymentStatus) &&
       Boolean(challenge?.submissionDeadline) &&
@@ -292,6 +297,8 @@ export const saveSubmission = async (req, res) => {
 
     await registration.save();
     await registration.populate("challenge");
+
+    if (final && !wasSubmitted) notifySubmissionReceived(registration._id);
 
     return res.json({
       success: true,

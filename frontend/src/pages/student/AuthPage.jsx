@@ -136,6 +136,14 @@ export default function AuthPage({ mode }) {
             />
           </Field>
 
+          {!isSignup && (
+            <p className="-mt-2 text-right">
+              <Link to="/forgot-password" className="text-xs font-bold text-indigo-600 hover:underline">
+                Forgot password?
+              </Link>
+            </p>
+          )}
+
           {error && (
             <p className="rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-2.5 text-sm font-semibold text-rose-700" role="alert">
               {error}

@@ -74,7 +74,7 @@ export default function RegistrationDetail() {
             adminNote: form.adminNote,
           },
         }),
-      "Saved. The student sees this on their dashboard.",
+      "Saved. The student sees this on their dashboard (and gets an email if their status or defense slot changed).",
     );
   };
 

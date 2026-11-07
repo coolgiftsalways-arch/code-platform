@@ -1,11 +1,14 @@
 import mongoose from "mongoose";
 
 import Announcement from "../models/Announcement.js";
+import Category from "../models/Category.js";
 import Challenge, { challengePhase } from "../models/Challenge.js";
 import Registration, { REGISTRATION_STATUSES } from "../models/Registration.js";
 import User from "../models/User.js";
 import { shortId } from "../utils/razorpay.js";
 import { testCouponCode } from "../utils/coupon.js";
+import { announcementEmail, emailConfigured, sendEmail, testEmail } from "../utils/mailer.js";
+import { notifyRegistrationConfirmed, notifyStatusChanged } from "../utils/notify.js";
 
 /* =========================================================
    HELPERS
@@ -159,6 +162,8 @@ export const getStats = async (_req, res) => {
         razorpayMode: String(process.env.RAZORPAY_KEY_ID || "").startsWith("rzp_live_") ? "live" : "test",
         publicUrl: process.env.PUBLIC_URL || "",
         testCoupon: testCouponCode(),
+        email: emailConfigured(),
+        emailFrom: process.env.MAIL_FROM || process.env.SMTP_USER || "",
       },
     });
   } catch (error) {
@@ -169,8 +174,6 @@ export const getStats = async (_req, res) => {
 /* =========================================================
    CHALLENGES
 ========================================================= */
-
-const CATEGORIES = ["Web Dev", "Mobile Apps", "AI / ML", "SaaS", "Cybersecurity", "Open"];
 
 const slugify = (text) =>
   String(text || "")
@@ -211,7 +214,7 @@ function challengeInput(body = {}) {
   const slug = slugify(body.slug || title);
   if (!slug) throw new Error("Add a URL slug using letters and numbers.");
 
-  const category = CATEGORIES.includes(body.category) ? body.category : "Open";
+  const category = clean(body.category, 40) || "Open";
 
   const startAt = parseDate(body.startAt, "Registration opens", { optional: true });
   const registrationDeadline = parseDate(body.registrationDeadline, "Registration closes");
@@ -233,10 +236,27 @@ function challengeInput(body = {}) {
     .filter((prize) => prize.place && prize.reward)
     .slice(0, 20);
 
+  const judgingCriteria = (Array.isArray(body.judgingCriteria) ? body.judgingCriteria : [])
+    .map((c) => ({
+      name: clean(c?.name, 80),
+      description: clean(c?.description, 300),
+      weight: Math.min(Math.max(Math.round(Number(c?.weight) || 0), 0), 100),
+    }))
+    .filter((c) => c.name)
+    .slice(0, 15);
+
+  const faqs = (Array.isArray(body.faqs) ? body.faqs : [])
+    .map((f) => ({ question: clean(f?.question, 200), answer: clean(f?.answer, 2000) }))
+    .filter((f) => f.question && f.answer)
+    .slice(0, 30);
+
   return {
     title,
     slug,
     category,
+    judgingCriteria,
+    faqs,
+    galleryPublic: body.galleryPublic === true,
     tagline: clean(body.tagline, 200),
     description: clean(body.description, 5000),
     host: clean(body.host, 80) || "DEVNEX",
@@ -309,6 +329,10 @@ export const createChallenge = async (req, res) => {
   }
 
   try {
+    if (input.category !== "Open" && !(await Category.exists({ name: input.category }))) {
+      return res.status(400).json({ success: false, message: `Category "${input.category}" doesn't exist.` });
+    }
+
     const challenge = await Challenge.create(input);
     return res.status(201).json({ success: true, challenge: adminChallenge(challenge) });
   } catch (error) {
@@ -337,6 +361,14 @@ export const updateChallenge = async (req, res) => {
   try {
     const challenge = await Challenge.findById(req.params.id);
     if (!challenge) return res.status(404).json({ success: false, message: "Challenge not found." });
+
+    if (
+      input.category !== "Open" &&
+      input.category !== challenge.category &&
+      !(await Category.exists({ name: input.category }))
+    ) {
+      return res.status(400).json({ success: false, message: `Category "${input.category}" doesn't exist.` });
+    }
 
     // Changing the URL after students joined would break their links.
     if (input.slug !== challenge.slug && (await Registration.exists({ challenge: challenge._id }))) {
@@ -490,6 +522,8 @@ export const updateRegistration = async (req, res) => {
 
     const body = req.body || {};
     const unpaid = registration.paymentStatus === "Pending";
+    const statusBefore = registration.status;
+    const slotBefore = registration.defenseSlot ? registration.defenseSlot.getTime() : null;
 
     if (body.status !== undefined) {
       if (!REGISTRATION_STATUSES.includes(body.status)) {
@@ -526,10 +560,18 @@ export const updateRegistration = async (req, res) => {
     }
 
     await registration.save();
+
+    // Email the student when their status changes, or their defense slot moves.
+    const slotAfter = registration.defenseSlot ? registration.defenseSlot.getTime() : null;
+    const emailed =
+      registration.status !== statusBefore ||
+      (registration.status === "Defense Scheduled" && slotAfter && slotAfter !== slotBefore);
+    if (emailed) notifyStatusChanged(registration._id);
+
     await registration.populate("user", USER_FIELDS);
     await registration.populate("challenge", CHALLENGE_FIELDS);
 
-    return res.json({ success: true, registration: adminRegistration(registration) });
+    return res.json({ success: true, emailed: Boolean(emailed), registration: adminRegistration(registration) });
   } catch (error) {
     if (error?.message?.includes("not a valid date")) {
       return res.status(400).json({ success: false, message: error.message });
@@ -567,6 +609,8 @@ export const markPaidManually = async (req, res) => {
       return res.status(409).json({ success: false, message: "This registration isn't waiting for payment." });
     }
 
+    notifyRegistrationConfirmed(registration._id);
+
     return res.json({ success: true, registration: adminRegistration(registration) });
   } catch (error) {
     return fail(res, error, "Unable to mark as paid");
@@ -584,11 +628,19 @@ export const bulkStatus = async (req, res) => {
       return res.status(400).json({ success: false, message: "Pick a status." });
     }
 
-    // Unpaid registrations are skipped.
+    // Unpaid registrations are skipped. Only students whose status really changes get an email.
+    const changing = await Registration.find({
+      _id: { $in: ids },
+      paymentStatus: { $in: JOINED },
+      status: { $ne: status },
+    }).distinct("_id");
+
     const result = await Registration.updateMany(
       { _id: { $in: ids }, paymentStatus: { $in: JOINED } },
       { status },
     );
+
+    if (changing.length) notifyStatusChanged(changing);
 
     return res.json({
       success: true,
@@ -755,7 +807,28 @@ export const createAnnouncement = async (req, res) => {
     await announcement.populate("challenge", "title");
     await announcement.populate("author", "email");
 
-    return res.status(201).json({ success: true, announcement: adminAnnouncement(announcement) });
+    // Optional: also email it.
+    let emailing = 0;
+    if (req.body?.sendEmail === true) {
+      const recipients = challenge
+        ? await User.find({
+            _id: {
+              $in: await Registration.find({ challenge, paymentStatus: { $in: JOINED } }).distinct("user"),
+            },
+          }).select("firstName email")
+        : await User.find({ role: { $ne: "admin" } }).select("firstName email");
+
+      emailing = recipients.length;
+
+      // Sent one by one in the background so the admin page doesn't wait.
+      (async () => {
+        for (const user of recipients) {
+          await sendEmail(announcementEmail({ user, announcement, challengeTitle: announcement.challenge?.title }));
+        }
+      })().catch((error) => console.error("❌ Announcement emails failed:", error.message));
+    }
+
+    return res.status(201).json({ success: true, emailing, announcement: adminAnnouncement(announcement) });
   } catch (error) {
     return fail(res, error, "Unable to post announcement");
   }
@@ -771,4 +844,153 @@ export const deleteAnnouncement = async (req, res) => {
   } catch (error) {
     return fail(res, error, "Unable to delete announcement");
   }
+};
+
+/* =========================================================
+   CATEGORIES
+========================================================= */
+
+const ICONS = ["code", "brain", "phone", "layers", "chart", "shield", "cloud", "pen", "rocket", "cpu", "globe", "gamepad"];
+const COLORS = ["indigo", "violet", "emerald", "amber", "sky", "slate", "cyan", "pink", "rose", "orange"];
+
+function categoryInput(body = {}) {
+  const name = clean(body.name, 40);
+  const title = clean(body.title, 120) || name;
+  if (!name) throw new Error("Name is required.");
+  if (name.toLowerCase() === "open") throw new Error('"Open" is reserved for any-track challenges.');
+
+  const slug = slugify(body.slug || title);
+  if (!slug) throw new Error("Add a URL slug using letters and numbers.");
+
+  return {
+    name,
+    title,
+    slug,
+    eyebrow: clean(body.eyebrow, 60).toUpperCase(),
+    description: clean(body.description, 1000),
+    stack: stringList(body.stack, 20, 40),
+    examples: stringList(body.examples, 12, 80),
+    icon: ICONS.includes(body.icon) ? body.icon : "code",
+    color: COLORS.includes(body.color) ? body.color : "indigo",
+    order: Math.round(Number(body.order) || 0),
+    isActive: body.isActive !== false,
+  };
+}
+
+// GET /api/admin/categories
+export const listAdminCategories = async (_req, res) => {
+  try {
+    const [categories, counts] = await Promise.all([
+      Category.find().sort({ order: 1, name: 1 }),
+      Challenge.aggregate([{ $group: { _id: "$category", count: { $sum: 1 } } }]),
+    ]);
+    const byName = new Map(counts.map((row) => [row._id, row.count]));
+
+    return res.json({
+      success: true,
+      icons: ICONS,
+      colors: COLORS,
+      categories: categories.map((c) => ({ ...c.toObject(), id: c._id, challenges: byName.get(c.name) || 0 })),
+    });
+  } catch (error) {
+    return fail(res, error, "Unable to load categories");
+  }
+};
+
+// POST /api/admin/categories
+export const createCategory = async (req, res) => {
+  try {
+    const input = categoryInput(req.body);
+    const category = await Category.create(input);
+    return res.status(201).json({ success: true, category: { ...category.toObject(), id: category._id } });
+  } catch (error) {
+    if (error?.code === 11000) {
+      return res.status(409).json({ success: false, message: "A category with that name or slug already exists." });
+    }
+    if (error?.name === "ValidationError") {
+      return res.status(400).json({ success: false, message: Object.values(error.errors)[0]?.message });
+    }
+    if (error instanceof Error && !error.code) {
+      return res.status(400).json({ success: false, message: error.message });
+    }
+    return fail(res, error, "Unable to create category");
+  }
+};
+
+// PUT /api/admin/categories/:id   (renaming also updates its challenges)
+export const updateCategory = async (req, res) => {
+  try {
+    if (!isId(req.params.id)) return res.status(404).json({ success: false, message: "Category not found." });
+
+    let input;
+    try {
+      input = categoryInput(req.body);
+    } catch (error) {
+      return res.status(400).json({ success: false, message: error.message });
+    }
+
+    const category = await Category.findById(req.params.id);
+    if (!category) return res.status(404).json({ success: false, message: "Category not found." });
+
+    const oldName = category.name;
+    category.set(input);
+    await category.save();
+
+    if (oldName !== category.name) {
+      await Challenge.updateMany({ category: oldName }, { category: category.name });
+    }
+
+    return res.json({ success: true, category: { ...category.toObject(), id: category._id } });
+  } catch (error) {
+    if (error?.code === 11000) {
+      return res.status(409).json({ success: false, message: "A category with that name or slug already exists." });
+    }
+    if (error?.name === "ValidationError") {
+      return res.status(400).json({ success: false, message: Object.values(error.errors)[0]?.message });
+    }
+    return fail(res, error, "Unable to update category");
+  }
+};
+
+// DELETE /api/admin/categories/:id   (only when no challenge uses it)
+export const deleteCategory = async (req, res) => {
+  try {
+    if (!isId(req.params.id)) return res.status(404).json({ success: false, message: "Category not found." });
+
+    const category = await Category.findById(req.params.id);
+    if (!category) return res.status(404).json({ success: false, message: "Category not found." });
+
+    if (await Challenge.exists({ category: category.name })) {
+      return res.status(409).json({
+        success: false,
+        message: "Some challenges use this category. Move them first, or hide the category instead.",
+      });
+    }
+
+    await category.deleteOne();
+    return res.json({ success: true });
+  } catch (error) {
+    return fail(res, error, "Unable to delete category");
+  }
+};
+
+/* =========================================================
+   TEST EMAIL
+   POST /api/admin/test-email   { to? }
+========================================================= */
+
+export const sendTestEmail = async (req, res) => {
+  const to = clean(req.body?.to, 120) || req.user.email;
+
+  if (!emailConfigured()) {
+    return res.status(400).json({
+      success: false,
+      message: "Email isn't set up. Add SMTP_USER and SMTP_PASS to the server's environment variables.",
+    });
+  }
+
+  const result = await sendEmail(testEmail(to));
+
+  if (result.sent) return res.json({ success: true, message: `Test email sent to ${to}.` });
+  return res.status(502).json({ success: false, message: `Sending failed: ${result.error || "unknown error"}` });
 };

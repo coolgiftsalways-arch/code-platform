@@ -8,7 +8,7 @@ import { Card, Empty, ErrorBox, Field, Loader, PageHeader, SuccessBox } from "..
 export default function Announcements() {
   const [announcements, setAnnouncements] = useState(null);
   const [challenges, setChallenges] = useState([]);
-  const [form, setForm] = useState({ title: "", body: "", challenge: "" });
+  const [form, setForm] = useState({ title: "", body: "", challenge: "", sendEmail: false });
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
@@ -31,9 +31,13 @@ export default function Announcements() {
     setError("");
     setNotice("");
     try {
-      await api("/api/admin/announcements", { method: "POST", body: form });
-      setForm({ title: "", body: "", challenge: "" });
-      setNotice("Posted. Students will see it on their dashboard.");
+      const result = await api("/api/admin/announcements", { method: "POST", body: form });
+      setForm({ title: "", body: "", challenge: "", sendEmail: false });
+      setNotice(
+        `Posted. Students will see it on their dashboard${
+          result.emailing ? ` and ${result.emailing} email${result.emailing === 1 ? " is" : "s are"} being sent` : ""
+        }.`,
+      );
       await load();
     } catch (err) {
       setError(err.message);
@@ -73,6 +77,18 @@ export default function Announcements() {
             <Field label="Message">
               <textarea value={form.body} onChange={(e) => setForm((f) => ({ ...f, body: e.target.value }))} className={`${inputClass} min-h-[140px]`} maxLength={5000} />
             </Field>
+            <label className="flex items-start gap-2.5 text-sm">
+              <input
+                type="checkbox"
+                checked={form.sendEmail}
+                onChange={(e) => setForm((f) => ({ ...f, sendEmail: e.target.checked }))}
+                className="mt-0.5 h-4 w-4 accent-indigo-600"
+              />
+              <span>
+                <span className="block font-bold text-slate-900">Also send it by email</span>
+                <span className="text-xs text-slate-500">From your DEVNEX mailbox, to everyone who will see it.</span>
+              </span>
+            </label>
             <ErrorBox>{error}</ErrorBox>
             <SuccessBox>{notice}</SuccessBox>
             <button type="submit" disabled={busy || !form.title.trim() || !form.body.trim()} className={`${btn.primary} w-full`}>

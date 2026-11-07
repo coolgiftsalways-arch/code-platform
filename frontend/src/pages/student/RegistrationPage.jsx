@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
+import { Award, Mail, PartyPopper } from "lucide-react";
 
 import { api } from "../../lib/api.js";
 import { categoryLabel, formatDate, formatInr, timeLeft } from "../../lib/format.js";
 import { PageLoader } from "../../components/RequireAuth.jsx";
 import EntryFeePayment from "../../components/EntryFeePayment.jsx";
 import { STATUS_STYLE, STEPS } from "./registrationStatus.js";
+import { useAuth } from "../../context/auth.js";
 
 const AI_TOOLS = ["None", "ChatGPT", "Claude", "Cursor", "Copilot", "Other"];
 
@@ -20,6 +22,7 @@ export default function RegistrationPage() {
   const [error, setError] = useState("");
   const [showPayment, setShowPayment] = useState(false);
   const [notice, setNotice] = useState("");
+  const [showSuccess, setShowSuccess] = useState(false);
 
   const load = useCallback(
     () =>
@@ -50,6 +53,7 @@ export default function RegistrationPage() {
 
       if (reg.paymentStatus !== "Pending" && (result === "success" || welcome)) {
         setNotice("You're registered! Your submission section is ready below.");
+        setShowSuccess(true);
       } else if (reg.paymentStatus === "Pending" && result) {
         setNotice("");
         setShowPayment(true);
@@ -88,10 +92,13 @@ export default function RegistrationPage() {
             setShowPayment(false);
             await load();
             setNotice("You're registered! Your submission section is ready below.");
+            setShowSuccess(true);
           }}
           onClose={() => setShowPayment(false)}
         />
       )}
+
+      {showSuccess && <SuccessModal registration={registration} onClose={() => setShowSuccess(false)} />}
 
       <div className="mx-auto max-w-5xl">
         <Link to="/dashboard" className="text-sm font-bold text-slate-500 hover:text-indigo-600">
@@ -178,6 +185,19 @@ export default function RegistrationPage() {
                     : `${formatInr(registration.amount)} pending`}
               </p>
             </div>
+
+            {registration.certificate && (
+              <Link
+                to={`/certificate/${registration.id}`}
+                className="flex items-center gap-3 rounded-[24px] border border-amber-200 bg-gradient-to-br from-amber-50 to-yellow-50 p-5 text-sm transition hover:shadow-md"
+              >
+                <Award className="h-8 w-8 shrink-0 text-amber-600" />
+                <span>
+                  <span className="block font-black text-amber-900">Your certificate is ready</span>
+                  <span className="text-amber-800">{registration.certificate.achievement} · Download →</span>
+                </span>
+              </Link>
+            )}
 
             {registration.defenseSlot && (
               <div className="rounded-[24px] border border-purple-200 bg-purple-50 p-5 text-sm">
@@ -459,5 +479,63 @@ function Field({ label, hint, children }) {
       {children}
       {hint && <span className="mt-1 block text-xs text-slate-400">{hint}</span>}
     </label>
+  );
+}
+
+/* =========================================================
+   PAYMENT SUCCESS (receipt)
+========================================================= */
+
+function SuccessModal({ registration, onClose }) {
+  const { user } = useAuth();
+  const paid = registration.paymentStatus === "Paid";
+
+  const rows = [
+    ["Challenge", registration.challenge.title],
+    ["Registration no.", registration.number],
+    ...(paid
+      ? [
+          ["Amount paid", formatInr(registration.amount)],
+          ...(registration.razorpayPaymentId ? [["Payment ID", registration.razorpayPaymentId]] : []),
+          ["Paid on", formatDate(registration.paidAt, true)],
+        ]
+      : [["Entry", "Free"]]),
+    ["Submit by", formatDate(registration.challenge.submissionDeadline, true)],
+  ];
+
+  return (
+    <div className="fixed inset-0 z-[99999] flex items-end justify-center bg-slate-950/50 backdrop-blur-sm sm:items-center sm:p-4" role="dialog" aria-modal="true" aria-labelledby="success-title">
+      <div className="max-h-[92vh] w-full max-w-md overflow-y-auto rounded-t-[28px] bg-white p-6 shadow-2xl sm:rounded-[28px] sm:p-8">
+        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
+          <PartyPopper className="h-8 w-8" />
+        </div>
+        <p className="mt-4 text-center text-[10px] font-black uppercase tracking-[0.2em] text-emerald-600">
+          {paid ? "Payment successful" : "Registration complete"}
+        </p>
+        <h2 id="success-title" className="mt-1 text-center text-2xl font-black text-slate-950">You're registered! 🎉</h2>
+
+        <dl className="mt-5 divide-y divide-slate-100 rounded-2xl border border-slate-200 text-sm">
+          {rows.map(([label, value]) => (
+            <div key={label} className="flex items-start justify-between gap-3 px-4 py-2.5">
+              <dt className="shrink-0 text-slate-500">{label}</dt>
+              <dd className="break-all text-right font-bold text-slate-900">{value}</dd>
+            </div>
+          ))}
+        </dl>
+
+        <p className="mt-4 flex items-start gap-2 rounded-xl bg-indigo-50 px-3.5 py-3 text-xs font-semibold text-indigo-800">
+          <Mail className="mt-0.5 h-4 w-4 shrink-0" />
+          A confirmation {paid ? "and receipt " : ""}has been sent to {user?.email}.
+        </p>
+
+        <button
+          type="button"
+          onClick={onClose}
+          className="mt-5 w-full rounded-xl bg-indigo-600 py-3.5 text-sm font-bold text-white transition hover:bg-indigo-700"
+        >
+          Start my project
+        </button>
+      </div>
+    </div>
   );
 }

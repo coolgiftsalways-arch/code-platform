@@ -6,6 +6,7 @@ import {
   syncRegistrationPayment,
 } from "../utils/razorpay.js";
 import { isValidCoupon, priceFor } from "../utils/coupon.js";
+import { notifyRegistrationConfirmed } from "../utils/notify.js";
 
 /* =========================================================
    HELPERS
@@ -30,6 +31,9 @@ export function serializeChallenge(challenge, extra = {}) {
     submissionDeadline: challenge.submissionDeadline,
     resultsAt: challenge.resultsAt,
     prizes: challenge.prizes,
+    judgingCriteria: challenge.judgingCriteria || [],
+    faqs: challenge.faqs || [],
+    galleryPublic: Boolean(challenge.galleryPublic),
     rules: challenge.rules,
     eligibility: challenge.eligibility,
     phase: challengePhase(challenge),
@@ -249,6 +253,7 @@ export const registerForChallenge = async (req, res) => {
       registration.paymentStatus = "Free";
       registration.status = "Registered";
       await registration.save();
+      notifyRegistrationConfirmed(registration._id);
 
       return res.status(201).json({
         success: true,

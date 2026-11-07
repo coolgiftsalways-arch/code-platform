@@ -3,6 +3,7 @@ import Razorpay from "razorpay";
 
 import Participant from "../models/Participant.js";
 import Registration from "../models/Registration.js";
+import { notifyRegistrationConfirmed } from "./notify.js";
 
 // Same flow as lights.bio: a fixed-amount Razorpay Payment Link, shown as a
 // QR + "Pay with Razorpay" button. The page polls a status endpoint, and
@@ -121,8 +122,8 @@ export async function cancelPaymentLink(linkId) {
   }
 }
 
-export function markRegistrationPaid(registrationId, paymentId) {
-  return Registration.findOneAndUpdate(
+export async function markRegistrationPaid(registrationId, paymentId) {
+  const registration = await Registration.findOneAndUpdate(
     { _id: registrationId, paymentStatus: "Pending" },
     {
       paymentStatus: "Paid",
@@ -132,6 +133,11 @@ export function markRegistrationPaid(registrationId, paymentId) {
     },
     { returnDocument: "after" },
   );
+
+  // Only the call that actually flipped it to Paid sends the receipt email.
+  if (registration) notifyRegistrationConfirmed(registration._id);
+
+  return registration;
 }
 
 // Ask Razorpay whether a pending registration's link has been paid.

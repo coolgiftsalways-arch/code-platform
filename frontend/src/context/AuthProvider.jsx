@@ -39,9 +39,15 @@ export default function AuthProvider({ children }) {
     setUser(null);
   }, []);
 
+  // After a password reset the server logs the student straight in.
+  const acceptLogin = useCallback((token, loggedInUser) => {
+    setToken(token);
+    setUser(loggedInUser);
+  }, []);
+
   const value = useMemo(
-    () => ({ user, loading, login, signup, logout }),
-    [user, loading, login, signup, logout],
+    () => ({ user, loading, login, signup, logout, acceptLogin, setUser }),
+    [user, loading, login, signup, logout, acceptLogin],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

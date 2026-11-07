@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 
 import { api } from "../../lib/api.js";
 import { formatInr } from "../../lib/format.js";
-import { btn, CATEGORIES, inputClass } from "../constants.js";
+import { btn, inputClass } from "../constants.js";
 import { Card, ErrorBox, Field, Loader, PageHeader, SuccessBox } from "../ui.jsx";
 
 // ISO date -> value for <input type="datetime-local"> in the admin's own timezone.
@@ -31,6 +31,9 @@ const EMPTY = {
   submissionDeadline: "",
   resultsAt: "",
   prizes: [{ place: "1st Place", reward: "" }],
+  judgingCriteria: [],
+  faqs: [],
+  galleryPublic: false,
   rules: "",
   tags: "",
   eligibility: "",
@@ -47,6 +50,9 @@ function toForm(challenge) {
     submissionDeadline: toLocalInput(challenge.submissionDeadline),
     resultsAt: toLocalInput(challenge.resultsAt),
     prizes: challenge.prizes?.length ? challenge.prizes : EMPTY.prizes,
+    judgingCriteria: challenge.judgingCriteria || [],
+    faqs: challenge.faqs || [],
+    galleryPublic: Boolean(challenge.galleryPublic),
     rules: (challenge.rules || []).join("\n"),
     tags: (challenge.tags || []).join(", "),
   };
@@ -62,6 +68,8 @@ function toPayload(form) {
     submissionDeadline: fromLocalInput(form.submissionDeadline),
     resultsAt: fromLocalInput(form.resultsAt),
     prizes: form.prizes.filter((p) => p.place.trim() && p.reward.trim()),
+    judgingCriteria: form.judgingCriteria.filter((c) => c.name.trim()),
+    faqs: form.faqs.filter((f) => f.question.trim() && f.answer.trim()),
     rules: form.rules.split("\n").map((r) => r.trim()).filter(Boolean),
     tags: form.tags.split(",").map((t) => t.trim()).filter(Boolean),
   };
@@ -74,9 +82,16 @@ export default function ChallengeForm() {
 
   const [form, setForm] = useState(isNew ? EMPTY : null);
   const [meta, setMeta] = useState(null);
+  const [categories, setCategories] = useState([]);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    api("/api/admin/categories")
+      .then((d) => setCategories(d.categories))
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (isNew) return;
@@ -94,6 +109,16 @@ export default function ChallengeForm() {
     const value = event.target.type === "checkbox" ? event.target.checked : event.target.value;
     setForm((previous) => ({ ...previous, [field]: value }));
   };
+
+  // Edit one row of a list field (judgingCriteria / faqs).
+  const setRow = (list, index, field, value) =>
+    setForm((previous) => ({
+      ...previous,
+      [list]: previous[list].map((row, i) => (i === index ? { ...row, [field]: value } : row)),
+    }));
+  const addRow = (list, row) => setForm((previous) => ({ ...previous, [list]: [...previous[list], row] }));
+  const removeRow = (list, index) =>
+    setForm((previous) => ({ ...previous, [list]: previous[list].filter((_, i) => i !== index) }));
 
   const setPrize = (index, field, value) =>
     setForm((previous) => ({
@@ -175,9 +200,13 @@ export default function ChallengeForm() {
               </Field>
               <Field label="Category">
                 <select value={form.category} onChange={set("category")} className={inputClass}>
-                  {CATEGORIES.map((c) => (
-                    <option key={c} value={c}>{c === "Open" ? "Any track" : c}</option>
+                  <option value="Open">Any track</option>
+                  {categories.map((c) => (
+                    <option key={c.id} value={c.name}>{c.name}{c.isActive ? "" : " (hidden)"}</option>
                   ))}
+                  {form.category !== "Open" && !categories.some((c) => c.name === form.category) && (
+                    <option value={form.category}>{form.category}</option>
+                  )}
                 </select>
               </Field>
               <Field label="Tagline" hint="One line shown on the card." className="sm:col-span-2">
@@ -241,6 +270,54 @@ export default function ChallengeForm() {
             </div>
           </Card>
 
+          <Card
+            title="Judging criteria"
+            actions={
+              <button type="button" className={btn.small} onClick={() => addRow("judgingCriteria", { name: "", weight: 0, description: "" })}>
+                + Add criterion
+              </button>
+            }
+          >
+            {form.judgingCriteria.length === 0 && <p className="text-sm text-slate-500">Shown on the “Judging” tab. Weights are optional (percent).</p>}
+            <div className="space-y-3">
+              {form.judgingCriteria.map((c, index) => (
+                <div key={index} className="grid gap-2 rounded-xl border border-slate-100 p-3 sm:grid-cols-[1fr_90px_auto]">
+                  <input value={c.name} onChange={(e) => setRow("judgingCriteria", index, "name", e.target.value)} className={inputClass} placeholder="Technical Execution" />
+                  <input type="number" min="0" max="100" value={c.weight} onChange={(e) => setRow("judgingCriteria", index, "weight", e.target.value)} className={inputClass} placeholder="%" aria-label="Weight percent" />
+                  <button type="button" className={btn.small} onClick={() => removeRow("judgingCriteria", index)}>Remove</button>
+                  <input value={c.description} onChange={(e) => setRow("judgingCriteria", index, "description", e.target.value)} className={`${inputClass} sm:col-span-3`} placeholder="What judges look for" />
+                </div>
+              ))}
+            </div>
+            {form.judgingCriteria.some((c) => Number(c.weight) > 0) && (
+              <p className="mt-2 text-xs text-slate-500">
+                Total weight: {form.judgingCriteria.reduce((sum, c) => sum + (Number(c.weight) || 0), 0)}%
+              </p>
+            )}
+          </Card>
+
+          <Card
+            title="FAQ"
+            actions={
+              <button type="button" className={btn.small} onClick={() => addRow("faqs", { question: "", answer: "" })}>
+                + Add question
+              </button>
+            }
+          >
+            {form.faqs.length === 0 && <p className="text-sm text-slate-500">Shown on the “FAQ” tab.</p>}
+            <div className="space-y-3">
+              {form.faqs.map((f, index) => (
+                <div key={index} className="space-y-2 rounded-xl border border-slate-100 p-3">
+                  <div className="flex gap-2">
+                    <input value={f.question} onChange={(e) => setRow("faqs", index, "question", e.target.value)} className={inputClass} placeholder="Question" />
+                    <button type="button" className={btn.small} onClick={() => removeRow("faqs", index)}>Remove</button>
+                  </div>
+                  <textarea value={f.answer} onChange={(e) => setRow("faqs", index, "answer", e.target.value)} className={`${inputClass} min-h-[70px]`} placeholder="Answer" />
+                </div>
+              ))}
+            </div>
+          </Card>
+
           <Card title="Rules & eligibility">
             <div className="space-y-4">
               <Field label="Rules" hint="One rule per line.">
@@ -261,6 +338,13 @@ export default function ChallengeForm() {
                 <span>
                   <span className="block font-bold text-slate-900">Published</span>
                   <span className="text-xs text-slate-500">Show it on the website.</span>
+                </span>
+              </label>
+              <label className="flex items-start gap-3">
+                <input type="checkbox" checked={form.galleryPublic} onChange={set("galleryPublic")} className="mt-0.5 h-4 w-4 accent-indigo-600" />
+                <span>
+                  <span className="block font-bold text-slate-900">Public project gallery</span>
+                  <span className="text-xs text-slate-500">Show submitted projects to everyone (turn on after judging).</span>
                 </span>
               </label>
               <label className="flex items-start gap-3">

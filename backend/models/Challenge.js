@@ -24,11 +24,8 @@ const challengeSchema = new mongoose.Schema(
     tagline: { type: String, trim: true, default: "" },
     description: { type: String, trim: true, default: "" },
 
-    category: {
-      type: String,
-      enum: ["Web Dev", "Mobile Apps", "AI / ML", "SaaS", "Cybersecurity", "Open"],
-      default: "Open",
-    },
+    // A Category name (see models/Category.js), or "Open" for any track.
+    category: { type: String, trim: true, default: "Open" },
 
     coverImage: { type: String, trim: true, default: "" },
 
@@ -55,6 +52,37 @@ const challengeSchema = new mongoose.Schema(
     resultsAt: { type: Date, default: null },
 
     prizes: { type: [prizeSchema], default: [] },
+
+    // How projects are judged, shown on the challenge page.
+    judgingCriteria: {
+      type: [
+        new mongoose.Schema(
+          {
+            name: { type: String, trim: true, required: true },
+            description: { type: String, trim: true, default: "" },
+            weight: { type: Number, min: 0, max: 100, default: 0 }, // percent, optional
+          },
+          { _id: false },
+        ),
+      ],
+      default: [],
+    },
+
+    faqs: {
+      type: [
+        new mongoose.Schema(
+          {
+            question: { type: String, trim: true, required: true },
+            answer: { type: String, trim: true, required: true },
+          },
+          { _id: false },
+        ),
+      ],
+      default: [],
+    },
+
+    // Show submitted projects publicly on the challenge page.
+    galleryPublic: { type: Boolean, default: false },
     rules: { type: [String], default: [] },
     eligibility: { type: String, trim: true, default: "" },
 

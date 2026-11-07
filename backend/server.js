@@ -12,6 +12,7 @@ import fs from "node:fs";
 
 import connectDB from "./config/db.js";
 import ensureAdmin from "./utils/ensureAdmin.js";
+import ensureCategories from "./utils/ensureCategories.js";
 
 import authRoutes from "./routes/authRoutes.js";
 import participantRoutes from "./routes/participantRoutes.js";
@@ -23,6 +24,7 @@ import challengeRoutes from "./routes/challengeRoutes.js";
 import registrationRoutes from "./routes/registrationRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
 import announcementRoutes from "./routes/announcementRoutes.js";
+import showcaseRoutes from "./routes/showcaseRoutes.js";
 
 /* =========================================================
    APP
@@ -153,6 +155,9 @@ app.use("/api/challenges", challengeRoutes);
 app.use("/api/registrations", registrationRoutes);
 
 app.use("/api/announcements", announcementRoutes);
+
+// /api/categories, /api/projects/:id, /api/certificates/:number
+app.use("/api", showcaseRoutes);
 
 /* =========================================================
    ADMIN PANEL API (admin login required)
@@ -304,6 +309,12 @@ const startServer = async () => {
       await ensureAdmin();
     } catch (error) {
       console.error("❌ Admin account setup failed:", error.message);
+    }
+
+    try {
+      await ensureCategories();
+    } catch (error) {
+      console.error("❌ Category setup failed:", error.message);
     }
 
     /* =====================================================

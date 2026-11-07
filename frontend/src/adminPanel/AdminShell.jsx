@@ -9,6 +9,7 @@ import {
   Megaphone,
   Menu,
   Settings,
+  Shapes,
   Trophy,
   Users,
   X,
@@ -20,6 +21,7 @@ import { Loader } from "./ui.jsx";
 const NAV = [
   { to: "/admin", label: "Overview", icon: LayoutDashboard, end: true },
   { to: "/admin/challenges", label: "Challenges", icon: Trophy },
+  { to: "/admin/categories", label: "Categories", icon: Shapes },
   { to: "/admin/registrations", label: "Registrations", icon: ClipboardList },
   { to: "/admin/students", label: "Students", icon: Users },
   { to: "/admin/payments", label: "Payments", icon: CreditCard },

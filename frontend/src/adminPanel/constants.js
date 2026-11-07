@@ -29,8 +29,6 @@ export const STATUSES = [
 // Statuses an admin can move a paid registration to.
 export const JUDGING_STATUSES = STATUSES.filter((s) => s !== "Pending Payment");
 
-export const CATEGORIES = ["Web Dev", "Mobile Apps", "AI / ML", "SaaS", "Cybersecurity", "Open"];
-
 export const PAYMENT_STYLE = {
   Paid: "bg-emerald-50 text-emerald-700 border-emerald-200",
   Free: "bg-sky-50 text-sky-700 border-sky-200",

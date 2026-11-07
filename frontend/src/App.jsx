@@ -10,7 +10,7 @@ import Navbar from "./components/Navbar.jsx";
 import Hero from "./components/Hero.jsx";
 import AboutUs from "./components/About.jsx";
 import Gallery from "./components/Gallery.jsx";
-import Categories from "./components/Categories .jsx";
+import Categories from "./pages/Categories.jsx";
 import HallofFrme from "./components/HallOfFame.jsx";
 import Footer from "./components/Footer.jsx";
 import LoginForm from "./components/Upload.jsx";
@@ -30,6 +30,9 @@ import Challenges from "./pages/student/Challenges.jsx";
 import ChallengeDetail from "./pages/student/ChallengeDetail.jsx";
 import StudentDashboard from "./pages/student/Dashboard.jsx";
 import RegistrationPage from "./pages/student/RegistrationPage.jsx";
+import { ProjectGallery, ProjectPage } from "./pages/student/Projects.jsx";
+import { Profile, ForgotPassword, ResetPassword } from "./pages/student/Account.jsx";
+import { CertificatePage, VerifyPage } from "./pages/student/Certificate.jsx";
 
 // =========================================================
 // ADMIN COMPONENTS
@@ -46,6 +49,7 @@ import { StudentsList as AdminStudents, StudentDetail as AdminStudentDetail } fr
 import AdminPayments from "./adminPanel/pages/Payments.jsx";
 import AdminAnnouncements from "./adminPanel/pages/Announcements.jsx";
 import AdminSettings from "./adminPanel/pages/Settings.jsx";
+import AdminCategories from "./adminPanel/pages/Categories.jsx";
 
 // =========================================================
 // CSS
@@ -309,6 +313,19 @@ export default function App() {
           }
         />
 
+        {/* =====================================================
+            PROJECTS, PROFILE, PASSWORDS, CERTIFICATES
+        ===================================================== */}
+
+        <Route path="/challenges/:slug/projects" element={<WebsiteLayout><ProjectGallery /></WebsiteLayout>} />
+        <Route path="/projects/:id" element={<WebsiteLayout><ProjectPage /></WebsiteLayout>} />
+        <Route path="/profile" element={<WebsiteLayout><RequireAuth><Profile /></RequireAuth></WebsiteLayout>} />
+        <Route path="/forgot-password" element={<WebsiteLayout><ForgotPassword /></WebsiteLayout>} />
+        <Route path="/reset-password" element={<WebsiteLayout><ResetPassword /></WebsiteLayout>} />
+        <Route path="/certificate/:id" element={<RequireAuth><CertificatePage /></RequireAuth>} />
+        <Route path="/verify" element={<WebsiteLayout><VerifyPage /></WebsiteLayout>} />
+        <Route path="/verify/:number" element={<WebsiteLayout><VerifyPage /></WebsiteLayout>} />
+
         {/* ================= HALL OF FAME ================= */}
 
         <Route
@@ -331,6 +348,7 @@ export default function App() {
           <Route path="challenges" element={<AdminChallenges />} />
           <Route path="challenges/new" element={<AdminChallengeForm />} />
           <Route path="challenges/:id" element={<AdminChallengeForm key="edit" />} />
+          <Route path="categories" element={<AdminCategories />} />
           <Route path="registrations" element={<AdminRegistrations />} />
           <Route path="registrations/:id" element={<AdminRegistrationDetail />} />
           <Route path="students" element={<AdminStudents />} />

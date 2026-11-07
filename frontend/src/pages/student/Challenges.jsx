@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import {
   CalendarDays,
   Flag,
@@ -17,6 +17,7 @@ import {
   formatRange,
   startsIn,
   timeLeft,
+  categoryLabel,
 } from "../../lib/format.js";
 import { useAuth } from "../../context/auth.js";
 import { PageLoader } from "../../components/RequireAuth.jsx";
@@ -112,7 +113,14 @@ export default function Challenges() {
   const [query, setQuery] = useState("");
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState("relevant");
-  const [filters, setFilters] = useState({ status: [], entry: [], tags: [] });
+  // Links like /challenges?category=AI%20%2F%20ML or ?tag=Web start pre-filtered.
+  const [params] = useSearchParams();
+  const [filters, setFilters] = useState(() => ({
+    status: [],
+    entry: [],
+    category: params.get("category") ? [params.get("category")] : [],
+    tags: params.get("tag") ? [params.get("tag")] : [],
+  }));
   const [showFilters, setShowFilters] = useState(false);
 
   // Reload once we know who is logged in, so "Registered" badges are right.
@@ -126,10 +134,15 @@ export default function Challenges() {
   }, [authLoading, user]);
 
   // Every tag that appears, most common first.
+  const allCategories = useMemo(
+    () => [...new Set(challenges.map((c) => c.category))].sort((a, b) => (a === "Open") - (b === "Open") || a.localeCompare(b)),
+    [challenges],
+  );
+
   const allTags = useMemo(() => {
     const counts = new Map();
     for (const c of challenges) {
-      for (const t of new Set([c.category, ...(c.tags || [])])) {
+      for (const t of new Set(c.tags || [])) {
         if (t && t !== "Open") counts.set(t, (counts.get(t) || 0) + 1);
       }
     }
@@ -147,6 +160,7 @@ export default function Challenges() {
       }
       if (filters.status.length && !filters.status.includes(STATUS_OF_PHASE[c.phase])) return false;
       if (filters.entry.length && !filters.entry.includes(c.fee ? "Paid" : "Free")) return false;
+      if (filters.category.length && !filters.category.includes(c.category)) return false;
       if (filters.tags.length && !filters.tags.some((t) => tags.includes(t))) return false;
       return true;
     });
@@ -165,7 +179,7 @@ export default function Challenges() {
     }));
 
   const clearAll = () => {
-    setFilters({ status: [], entry: [], tags: [] });
+    setFilters({ status: [], entry: [], category: [], tags: [] });
     setQuery("");
     setSearch("");
   };
@@ -267,6 +281,16 @@ export default function Challenges() {
                 </Check>
               ))}
             </FilterGroup>
+
+            {allCategories.length > 1 && (
+              <FilterGroup title="Category">
+                {allCategories.map((name) => (
+                  <Check key={name} checked={filters.category.includes(name)} onChange={() => toggle("category", name)}>
+                    {categoryLabel(name)}
+                  </Check>
+                ))}
+              </FilterGroup>
+            )}
 
             <FilterGroup title="Entry fee">
               {ENTRY.map((entry) => (

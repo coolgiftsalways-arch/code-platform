@@ -2,7 +2,7 @@ import { createContext, useContext } from "react";
 
 export const AuthContext = createContext(null);
 
-// { user, loading, login, signup, logout }
+// { user, loading, login, signup, logout, acceptLogin, setUser }
 export function useAuth() {
   const value = useContext(AuthContext);
   if (!value) throw new Error("useAuth must be used inside <AuthProvider>");

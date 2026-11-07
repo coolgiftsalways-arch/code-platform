@@ -11,6 +11,7 @@ dotenv.config({ path: fileURLToPath(new URL("../.env", import.meta.url)) });
 
 const { default: connectDB } = await import("../config/db.js");
 const { default: Challenge } = await import("../models/Challenge.js");
+const { default: ensureCategories } = await import("../utils/ensureCategories.js");
 
 const ist = (date, time = "23:59:59") => new Date(`${date}T${time}+05:30`);
 
@@ -23,6 +24,23 @@ const RULES = [
 ];
 
 const ELIGIBILITY = "Open to all school and college students in India. Solo participation.";
+
+const JUDGING = [
+  { name: "Problem & Purpose", weight: 15, description: "Why the project exists, who it helps and what problem it solves." },
+  { name: "Technical Execution", weight: 25, description: "The core functionality works and shows real engineering effort." },
+  { name: "Code & Architecture", weight: 20, description: "Structure, data flow, APIs and implementation choices make sense." },
+  { name: "Original Contribution", weight: 15, description: "You can explain what you personally built, designed or improved." },
+  { name: "Product Experience", weight: 15, description: "Understandable, usable, responsive and well presented." },
+  { name: "Documentation", weight: 10, description: "A clear README: setup, features and how it works." },
+];
+
+const FAQS = [
+  { question: "Is it online?", answer: "Yes. Everything happens online — registration, building, submission and the technical defense." },
+  { question: "Can I use AI tools?", answer: "Yes. Just tell us honestly which tools you used when you submit. You must still understand and explain your code." },
+  { question: "Can I participate in a team?", answer: "This season is solo. One registration per student per challenge." },
+  { question: "Can I edit my project after submitting?", answer: "Yes, as many times as you like until the submission deadline." },
+  { question: "What is the technical defense?", answer: "Shortlisted students join a short online call to walk the judges through their project and code." },
+];
 
 // Shared settings for the five Season 01 tracks.
 const SEASON_01 = {
@@ -41,6 +59,8 @@ const SEASON_01 = {
   ],
   rules: RULES,
   eligibility: ELIGIBILITY,
+  judgingCriteria: JUDGING,
+  faqs: FAQS,
   isPublished: true,
 };
 
@@ -191,6 +211,7 @@ const CHALLENGES = [
     tagline: "The pilot that started it all.",
     description: "Our first pilot challenge. See the winners in the Hall of Fame.",
     prizes: [{ place: "Winner", reward: "₹10,000" }, { place: "Runner-up", reward: "₹5,000" }],
+    galleryPublic: true,
     rules: RULES.slice(0, 4),
     eligibility: ELIGIBILITY,
     isPublished: true,
@@ -199,11 +220,12 @@ const CHALLENGES = [
 
 try {
   await connectDB();
+  await ensureCategories();
 
   for (const challenge of CHALLENGES) {
     await Challenge.updateOne(
       { slug: challenge.slug },
-      { $set: challenge, $unset: { mode: "", location: "" } },
+      { $set: { judgingCriteria: JUDGING, faqs: FAQS, ...challenge }, $unset: { mode: "", location: "" } },
       { upsert: true, runValidators: true },
     );
     console.log(`✅ ${challenge.title}`);

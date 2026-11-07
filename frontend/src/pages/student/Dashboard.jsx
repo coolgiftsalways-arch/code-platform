@@ -42,12 +42,18 @@ export default function Dashboard() {
             </p>
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Link
               to="/challenges"
               className="rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-indigo-700"
             >
               Browse challenges
+            </Link>
+            <Link
+              to="/profile"
+              className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-600 transition hover:border-slate-300"
+            >
+              Profile
             </Link>
             <button
               type="button"
@@ -151,7 +157,12 @@ function RegistrationCard({ registration }) {
           Submit by {formatDate(challenge.submissionDeadline)}
           {registration.canSubmit ? ` · ${timeLeft(challenge.submissionDeadline)}` : ""}
         </span>
-        <span className="font-bold text-indigo-600">{cta} →</span>
+        <span className="flex items-center gap-3">
+          {registration.certificate && (
+            <span className="rounded-full bg-amber-100 px-2.5 py-0.5 font-black text-amber-800">🏅 Certificate ready</span>
+          )}
+          <span className="font-bold text-indigo-600">{cta} →</span>
+        </span>
       </div>
     </Link>
   );
