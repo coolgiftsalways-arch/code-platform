@@ -7,91 +7,98 @@ const createToken = (userId) => {
     throw new Error("JWT_SECRET is missing in .env");
   }
 
-  return jwt.sign(
-    {
-      userId,
-    },
-    process.env.JWT_SECRET,
-    {
-      expiresIn: "7d",
-    },
-  );
+  return jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn: "7d" });
 };
 
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+// What the website is allowed to see about a student.
+export function publicUser(user) {
+  return {
+    id: user._id,
+    firstName: user.firstName,
+    lastName: user.lastName,
+    email: user.email,
+    phone: user.phone,
+    institute: user.institute || "",
+    city: user.city || "",
+    className: user.className || "",
+  };
+}
+
+const clean = (value, max = 200) => String(value ?? "").trim().slice(0, max);
+
 // ==========================================
-// REGISTER
+// REGISTER (student account)
+// POST /api/auth/register
 // ==========================================
 
 export const registerUser = async (req, res) => {
   try {
-    const {
-      firstName,
-      lastName,
-      className,
-      classAddress,
-      address,
-      email,
-      phone,
-      password,
-    } = req.body;
+    const body = req.body || {};
 
-    if (
-      !firstName ||
-      !lastName ||
-      !className ||
-      !classAddress ||
-      !address ||
-      !email ||
-      !phone ||
-      !password
-    ) {
+    const firstName = clean(body.firstName, 60);
+    const lastName = clean(body.lastName, 60);
+    const email = clean(body.email, 120).toLowerCase();
+    const phone = clean(body.phone, 20).replace(/\D/g, "").replace(/^(91|0)(?=\d{10}$)/, "");
+    const password = String(body.password || "");
+
+    if (!firstName || !lastName || !email || !phone || !password) {
       return res.status(400).json({
         success: false,
-        message: "Please fill in all fields",
+        message: "Please fill in your name, email, mobile number and password.",
       });
     }
 
-    const normalizedEmail = email.toLowerCase().trim();
+    if (!EMAIL_RE.test(email)) {
+      return res.status(400).json({ success: false, message: "Enter a valid email address." });
+    }
 
-    const existingUser = await User.findOne({
-      email: normalizedEmail,
-    });
+    if (!/^[6-9]\d{9}$/.test(phone)) {
+      return res.status(400).json({ success: false, message: "Enter a valid 10-digit mobile number." });
+    }
+
+    if (password.length < 8 || password.length > 100) {
+      return res.status(400).json({ success: false, message: "Password must be at least 8 characters." });
+    }
+
+    const existingUser = await User.findOne({ email });
 
     if (existingUser) {
       return res.status(409).json({
         success: false,
-        message: "An account with this email already exists",
+        message: "An account with this email already exists. Please log in.",
       });
     }
 
-    const hashedPassword = await bcrypt.hash(password, 12);
-
     const user = await User.create({
-      firstName: firstName.trim(),
-      lastName: lastName.trim(),
-      className: className.trim(),
-      classAddress: classAddress.trim(),
-      address: address.trim(),
-      email: normalizedEmail,
-      phone: phone.trim(),
-      password: hashedPassword,
+      firstName,
+      lastName,
+      email,
+      phone,
+      institute: clean(body.institute, 150),
+      city: clean(body.city, 80),
+      className: clean(body.className, 80),
+      classAddress: clean(body.classAddress, 200),
+      address: clean(body.address, 300),
+      password: await bcrypt.hash(password, 12),
     });
-
-    const token = createToken(user._id);
 
     return res.status(201).json({
       success: true,
       message: "Account created successfully",
-      token,
-      user: {
-        id: user._id,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        email: user.email,
-      },
+      token: createToken(user._id),
+      user: publicUser(user),
     });
   } catch (error) {
     console.error("Register error:", error);
+
+    if (error?.code === 11000) {
+      return res.status(409).json({
+        success: false,
+        message: "An account with this email already exists. Please log in.",
+      });
+    }
 
     return res.status(500).json({
       success: false,
@@ -102,11 +109,13 @@ export const registerUser = async (req, res) => {
 
 // ==========================================
 // LOGIN
+// POST /api/auth/login
 // ==========================================
 
 export const loginUser = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const email = clean(req.body?.email, 120).toLowerCase();
+    const password = String(req.body?.password || "");
 
     if (!email || !password) {
       return res.status(400).json({
@@ -115,40 +124,20 @@ export const loginUser = async (req, res) => {
       });
     }
 
-    const normalizedEmail = email.toLowerCase().trim();
+    const user = await User.findOne({ email });
 
-    const user = await User.findOne({
-      email: normalizedEmail,
-    });
-
-    if (!user) {
+    if (!user || !(await bcrypt.compare(password, user.password))) {
       return res.status(401).json({
         success: false,
         message: "Invalid email or password",
       });
     }
-
-    const passwordMatch = await bcrypt.compare(password, user.password);
-
-    if (!passwordMatch) {
-      return res.status(401).json({
-        success: false,
-        message: "Invalid email or password",
-      });
-    }
-
-    const token = createToken(user._id);
 
     return res.status(200).json({
       success: true,
-      message: "Login successful",
-      token,
-      user: {
-        id: user._id,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        email: user.email,
-      },
+      message: "Logged in successfully",
+      token: createToken(user._id),
+      user: publicUser(user),
     });
   } catch (error) {
     console.error("Login error:", error);
@@ -159,3 +148,10 @@ export const loginUser = async (req, res) => {
     });
   }
 };
+
+// ==========================================
+// CURRENT STUDENT
+// GET /api/auth/me   (needs Authorization: Bearer <token>)
+// ==========================================
+
+export const getMe = (req, res) => res.json({ success: true, user: publicUser(req.user) });

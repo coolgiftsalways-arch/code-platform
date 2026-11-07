@@ -20,6 +20,18 @@ import CustomCursor from "./components/CustomCursor.jsx";
 import Sponsors from "./components/Sponsors.jsx";
 
 // =========================================================
+// STUDENT ACCOUNTS + CHALLENGES
+// =========================================================
+
+import AuthProvider from "./context/AuthProvider.jsx";
+import RequireAuth from "./components/RequireAuth.jsx";
+import AuthPage from "./pages/student/AuthPage.jsx";
+import Challenges from "./pages/student/Challenges.jsx";
+import ChallengeDetail from "./pages/student/ChallengeDetail.jsx";
+import StudentDashboard from "./pages/student/Dashboard.jsx";
+import RegistrationPage from "./pages/student/RegistrationPage.jsx";
+
+// =========================================================
 // ADMIN COMPONENTS
 // =========================================================
 
@@ -120,6 +132,7 @@ function WebsiteLayout({ children }) {
 export default function App() {
   return (
     <BrowserRouter>
+      <AuthProvider>
       {/* =====================================================
           DEVNEX CUSTOM CURSOR
       ===================================================== */}
@@ -213,6 +226,76 @@ export default function App() {
               <div className="px-4 py-12">
                 <LoginForm />
               </div>
+            </WebsiteLayout>
+          }
+        />
+
+        {/* =====================================================
+            STUDENT: SIGN UP / LOG IN
+        ===================================================== */}
+
+        <Route
+          path="/signup"
+          element={
+            <WebsiteLayout>
+              <AuthPage mode="signup" />
+            </WebsiteLayout>
+          }
+        />
+
+        <Route
+          path="/login"
+          element={
+            <WebsiteLayout>
+              <AuthPage mode="login" />
+            </WebsiteLayout>
+          }
+        />
+
+        {/* =====================================================
+            STUDENT: CHALLENGES (public)
+        ===================================================== */}
+
+        <Route
+          path="/challenges"
+          element={
+            <WebsiteLayout>
+              <Challenges />
+            </WebsiteLayout>
+          }
+        />
+
+        <Route
+          path="/challenges/:slug"
+          element={
+            <WebsiteLayout>
+              <ChallengeDetail />
+            </WebsiteLayout>
+          }
+        />
+
+        {/* =====================================================
+            STUDENT: DASHBOARD (logged in)
+        ===================================================== */}
+
+        <Route
+          path="/dashboard"
+          element={
+            <WebsiteLayout>
+              <RequireAuth>
+                <StudentDashboard />
+              </RequireAuth>
+            </WebsiteLayout>
+          }
+        />
+
+        <Route
+          path="/dashboard/registrations/:id"
+          element={
+            <WebsiteLayout>
+              <RequireAuth>
+                <RegistrationPage />
+              </RequireAuth>
             </WebsiteLayout>
           }
         />
@@ -342,6 +425,7 @@ export default function App() {
           }
         />
       </Routes>
+      </AuthProvider>
     </BrowserRouter>
   );
 }

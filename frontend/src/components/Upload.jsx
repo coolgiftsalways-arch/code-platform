@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import EntryFeePayment from "./EntryFeePayment.jsx";
 
 /* =========================================================
    API
@@ -300,6 +301,53 @@ export default function Upload() {
 
   const [errorMessage, setErrorMessage] = useState("");
 
+  // { participantId, amount, paymentUrl } once the project is saved
+  const [payment, setPayment] = useState(null);
+
+  // Back from Razorpay: /upload?payment=success|failed&id=<participantId>
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const result = params.get("payment");
+    const participantId = params.get("id");
+
+    if (!result || !participantId) return;
+
+    window.history.replaceState(null, "", window.location.pathname);
+
+    (async () => {
+      try {
+        const statusResponse = await fetch(
+          `${API_URL}/api/payments/${participantId}/status`,
+        );
+        const status = await statusResponse.json().catch(() => ({}));
+
+        if (status.paymentStatus === "Paid") {
+          setSubmitted(true);
+          return;
+        }
+
+        // Not paid yet: show the payment screen again (new link if expired).
+        const linkResponse = await fetch(
+          `${API_URL}/api/payments/${participantId}/link`,
+          { method: "POST" },
+        );
+        const link = await linkResponse.json().catch(() => ({}));
+
+        if (linkResponse.status === 409) {
+          setSubmitted(true);
+        } else if (linkResponse.ok) {
+          setPayment({
+            participantId,
+            amount: link.amount,
+            paymentUrl: link.paymentUrl,
+          });
+        }
+      } catch {
+        setErrorMessage("Unable to confirm your payment. Please refresh the page.");
+      }
+    })();
+  }, []);
+
   const [techDropdownValue, setTechDropdownValue] = useState("");
 
   const formCardRef = useRef(null);
@@ -597,7 +645,11 @@ export default function Upload() {
         throw new Error(data.message || "Project submission failed.");
       }
 
-      setSubmitted(true);
+      setPayment({
+        participantId: data.participantId,
+        amount: data.amount,
+        paymentUrl: data.paymentUrl,
+      });
 
       window.scrollTo({
         top: 0,
@@ -619,6 +671,20 @@ export default function Upload() {
      SUCCESS
   ===================================================== */
 
+  if (payment && !submitted) {
+    return (
+      <EntryFeePayment
+        payment={payment}
+        statusUrl={`/api/payments/${payment.participantId}/status`}
+        linkUrl={`/api/payments/${payment.participantId}/link`}
+        onPaid={() => {
+          setPayment(null);
+          setSubmitted(true);
+        }}
+      />
+    );
+  }
+
   if (submitted) {
     return (
       <div className="fixed inset-0 z-[99999] flex min-h-screen items-center justify-center bg-slate-950/45 px-4 py-8 backdrop-blur-sm">
@@ -636,8 +702,8 @@ export default function Upload() {
           </h1>
 
           <p className="mx-auto mt-4 max-w-md text-sm leading-6 text-slate-600 sm:text-base">
-            Thank you for participating in DEVNEX. We have received your project
-            successfully. Our team will contact you within 24 hours.
+            Your entry fee is paid and we have received your project. Thank you
+            for participating in DEVNEX. Our team will contact you within 24 hours.
           </p>
 
           <div className="mt-5 rounded-2xl border border-indigo-100 bg-indigo-50 px-4 py-3 text-sm font-semibold text-indigo-700">

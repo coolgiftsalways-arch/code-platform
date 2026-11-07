@@ -3,6 +3,8 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { Code, Mail } from "lucide-react";
 import gsap from "gsap";
 
+import { useAuth } from "../context/auth.js";
+
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -12,6 +14,7 @@ export default function Navbar() {
 
   const navigate = useNavigate();
   const location = useLocation();
+  const { user } = useAuth();
 
   const activePage = location.pathname;
 
@@ -309,14 +312,14 @@ export default function Navbar() {
             <span className={activeLineClass("/features")} />
           </button>
 
-          {/* EXPO */}
+          {/* CHALLENGES */}
 
           <button
-            onClick={() => handleNavClick("/upload")}
-            className={desktopNavClass("/upload")}
+            onClick={() => handleNavClick("/challenges")}
+            className={desktopNavClass("/challenges")}
           >
-            Expo 2026
-            <span className={activeLineClass("/upload")} />
+            Challenges
+            <span className={activeLineClass("/challenges")} />
           </button>
 
           {/* =================================================
@@ -460,6 +463,17 @@ export default function Navbar() {
           </div>
 
           {/* =================================================
+              STUDENT ACCOUNT
+          ================================================= */}
+
+          <button
+            onClick={() => handleNavClick(user ? "/dashboard" : "/login")}
+            className="hidden rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-bold text-white shadow-md shadow-indigo-600/20 transition hover:bg-indigo-700 md:inline-flex"
+          >
+            {user ? "Dashboard" : "Log in"}
+          </button>
+
+          {/* =================================================
               MOBILE MENU BUTTON
           ================================================= */}
 
@@ -569,13 +583,22 @@ export default function Navbar() {
             Gallery
           </button>
 
-          {/* EXPO 2026 */}
+          {/* CHALLENGES */}
 
           <button
-            onClick={() => handleNavClick("/upload")}
-            className={mobileNavClass("/upload")}
+            onClick={() => handleNavClick("/challenges")}
+            className={mobileNavClass("/challenges")}
           >
-            Expo 2026
+            Challenges
+          </button>
+
+          {/* STUDENT ACCOUNT */}
+
+          <button
+            onClick={() => handleNavClick(user ? "/dashboard" : "/login")}
+            className={mobileNavClass(user ? "/dashboard" : "/login")}
+          >
+            {user ? "My Dashboard" : "Log in / Sign up"}
           </button>
 
           {/* =================================================

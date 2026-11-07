@@ -1,6 +1,6 @@
 import express from "express";
 
-import { createParticipant } from "../controllers/ParticipantController.js";
+import { submitProject } from "../controllers/ParticipantController.js";
 
 const router = express.Router();
 
@@ -17,7 +17,7 @@ Admin Participants page reads from Participant.
 =========================================================
 */
 
-router.post("/submit", createParticipant);
+router.post("/submit", submitProject);
 
 /*
 =========================================================

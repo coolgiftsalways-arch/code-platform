@@ -194,6 +194,28 @@ const participantSchema = new mongoose.Schema(
       default: null,
     },
 
+    razorpayPaymentLinkId: {
+      type: String,
+      default: null,
+      index: true,
+    },
+
+    // Razorpay payment link (fixed amount) shown as QR + button
+    paymentUrl: {
+      type: String,
+      default: null,
+    },
+
+    paymentLinkExpiresAt: {
+      type: Date,
+      default: null,
+    },
+
+    paidAt: {
+      type: Date,
+      default: null,
+    },
+
     // ==========================================
     // ADDONS
     // ==========================================

@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 
 import Participant from "../models/Participant.js";
+import { ENTRY_FEE, createPaymentLink } from "../utils/razorpay.js";
 
 /* =========================================================
    HELPERS
@@ -21,6 +22,52 @@ function normalizeTechStack(value) {
   return [];
 }
 
+// Fields the public form must never set itself (payment, results, admin state).
+const PROTECTED_FIELDS = [
+  "_id",
+  "status",
+  "paymentStatus",
+  "finalistFee",
+  "razorpayOrderId",
+  "razorpayPaymentId",
+  "razorpayPaymentLinkId",
+  "paymentUrl",
+  "paymentLinkExpiresAt",
+  "paidAt",
+  "defenseSlot",
+  "defenseStatus",
+  "defenseNotes",
+  "finalistPass",
+  "certificateIssued",
+  "isWinner",
+  "winnerRank",
+  "winnerAt",
+  "createdAt",
+  "updatedAt",
+];
+
+function buildParticipantPayload(body = {}) {
+  const payload = { ...body };
+
+  for (const field of PROTECTED_FIELDS) delete payload[field];
+
+  return {
+    ...payload,
+
+    email: String(body.email || "")
+      .trim()
+      .toLowerCase(),
+
+    techStack: normalizeTechStack(body.techStack),
+
+    status: "Application Received",
+
+    paymentStatus: "Pending",
+
+    finalistFee: ENTRY_FEE,
+  };
+}
+
 function isValidMongoId(id) {
   return mongoose.Types.ObjectId.isValid(String(id || ""));
 }
@@ -32,21 +79,7 @@ function isValidMongoId(id) {
 
 export const createParticipant = async (req, res) => {
   try {
-    const body = req.body || {};
-
-    const payload = {
-      ...body,
-
-      email: String(body.email || "")
-        .trim()
-        .toLowerCase(),
-
-      techStack: normalizeTechStack(body.techStack),
-
-      status: String(body.status || "Application Received").trim(),
-
-      paymentStatus: String(body.paymentStatus || "Pending").trim(),
-    };
+    const payload = buildParticipantPayload(req.body);
 
     const participant = await Participant.create(payload);
 
@@ -84,6 +117,60 @@ export const createParticipant = async (req, res) => {
       error: error.message,
     });
   }
+};
+
+/* =========================================================
+   SUBMIT PROJECT + START ENTRY FEE PAYMENT
+   POST /api/projects/submit
+
+   Same flow as lights.bio checkout: build the participant,
+   create a fixed-amount Razorpay payment link, then save.
+   The participant stays "Pending" until Razorpay confirms.
+========================================================= */
+
+export const submitProject = async (req, res) => {
+  const participant = new Participant(buildParticipantPayload(req.body));
+
+  try {
+    await participant.validate();
+  } catch (error) {
+    const first = Object.values(error.errors || {})[0];
+
+    return res.status(400).json({
+      success: false,
+      message: first ? first.message : "Please check your details.",
+    });
+  }
+
+  try {
+    await createPaymentLink(participant, req);
+  } catch (error) {
+    console.error("❌ Razorpay payment link error:", error.error || error.message);
+
+    return res.status(502).json({
+      success: false,
+      message: "Couldn't start payment. Please try again.",
+    });
+  }
+
+  try {
+    await participant.save();
+  } catch (error) {
+    console.error("❌ Submit project error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to save your submission. Please try again.",
+    });
+  }
+
+  return res.status(201).json({
+    success: true,
+    message: "Project submitted. Complete the entry fee payment.",
+    participantId: participant._id,
+    amount: participant.finalistFee,
+    paymentUrl: participant.paymentUrl,
+  });
 };
 
 /* =========================================================

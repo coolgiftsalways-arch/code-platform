@@ -16,20 +16,32 @@ const userSchema = new mongoose.Schema(
 
     className: {
       type: String,
-      required: true,
       trim: true,
+      default: "",
     },
 
     classAddress: {
       type: String,
-      required: true,
       trim: true,
+      default: "",
     },
 
     address: {
       type: String,
-      required: true,
       trim: true,
+      default: "",
+    },
+
+    institute: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+
+    city: {
+      type: String,
+      trim: true,
+      default: "",
     },
 
     email: {

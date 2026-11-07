@@ -17,6 +17,9 @@ import participantRoutes from "./routes/participantRoutes.js";
 import defenseRoutes from "./routes/defenseRoutes.js";
 import winnerRoutes from "./routes/winnerRoutes.js";
 import projectRoutes from "./routes/projectRoutes.js";
+import paymentRoutes from "./routes/paymentRoutes.js";
+import challengeRoutes from "./routes/challengeRoutes.js";
+import registrationRoutes from "./routes/registrationRoutes.js";
 
 /* =========================================================
    APP
@@ -128,6 +131,33 @@ app.use("/api/winners", winnerRoutes);
 ========================================================= */
 
 app.use("/api/projects", projectRoutes);
+
+/* =========================================================
+   CHALLENGES + STUDENT REGISTRATIONS
+
+   GET  /api/challenges
+   GET  /api/challenges/:slug
+   POST /api/challenges/:slug/register
+   GET  /api/registrations/my
+   GET  /api/registrations/:id
+   GET  /api/registrations/:id/payment-status
+   POST /api/registrations/:id/payment-link
+   PUT  /api/registrations/:id/submission
+========================================================= */
+
+app.use("/api/challenges", challengeRoutes);
+
+app.use("/api/registrations", registrationRoutes);
+
+/* =========================================================
+   PAYMENTS (Razorpay entry fee)
+
+   GET  /api/payments/callback
+   GET  /api/payments/:id/status
+   POST /api/payments/:id/link
+========================================================= */
+
+app.use("/api/payments", paymentRoutes);
 
 /* =========================================================
    API 404
